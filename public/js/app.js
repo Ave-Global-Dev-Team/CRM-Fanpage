@@ -225,6 +225,98 @@ function initAuthAndUserSwitcher() {
       errorEl.style.display = 'block';
     }
   });
+
+  // Change Password Modal handlers
+  const changePasswordModal = document.getElementById('changePasswordModal');
+  const btnOpenCP = document.getElementById('btnOpenChangePasswordModal');
+  const btnCloseCP = document.getElementById('btnCloseChangePasswordModal');
+  const btnCancelCP = document.getElementById('btnCancelChangePasswordModal');
+  const cpErrorEl = document.getElementById('cpErrorMsg');
+
+  btnOpenCP?.addEventListener('click', () => {
+    if (!currentUser || !currentUser.name) return;
+    const dept = currentUser.department || (currentUser.role === 'admin' ? 'Ban Giám Đốc' : 'Nhân sự');
+    document.getElementById('cpAccountName').value = `${currentUser.name} (${dept})`;
+    document.getElementById('cpOldPassword').value = '';
+    document.getElementById('cpNewPassword').value = '';
+    document.getElementById('cpConfirmPassword').value = '';
+    if (cpErrorEl) cpErrorEl.style.display = 'none';
+    changePasswordModal.classList.add('active');
+    document.getElementById('cpOldPassword').focus();
+  });
+
+  btnCloseCP?.addEventListener('click', () => changePasswordModal.classList.remove('active'));
+  btnCancelCP?.addEventListener('click', () => changePasswordModal.classList.remove('active'));
+
+  document.getElementById('changePasswordForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (cpErrorEl) cpErrorEl.style.display = 'none';
+
+    const oldPassword = document.getElementById('cpOldPassword').value.trim();
+    const newPassword = document.getElementById('cpNewPassword').value.trim();
+    const confirmPassword = document.getElementById('cpConfirmPassword').value.trim();
+    const submitBtn = document.getElementById('btnSubmitChangePassword');
+
+    if (newPassword.length < 6) {
+      if (cpErrorEl) {
+        cpErrorEl.innerText = 'Mật khẩu mới phải có tối thiểu 6 ký tự.';
+        cpErrorEl.style.display = 'block';
+      } else {
+        alert('Mật khẩu mới phải có tối thiểu 6 ký tự.');
+      }
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      if (cpErrorEl) {
+        cpErrorEl.innerText = 'Mật khẩu xác nhận không trùng khớp với mật khẩu mới.';
+        cpErrorEl.style.display = 'block';
+      } else {
+        alert('Mật khẩu xác nhận không trùng khớp với mật khẩu mới.');
+      }
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser.name,
+          oldPassword,
+          newPassword,
+          confirmPassword
+        })
+      });
+      const data = await res.json();
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Cập Nhật Mật Khẩu';
+
+      if (data.success) {
+        showToast('Đổi mật khẩu thành công! Hãy ghi nhớ mật khẩu mới của bạn.');
+        changePasswordModal.classList.remove('active');
+      } else {
+        if (cpErrorEl) {
+          cpErrorEl.innerText = data.error || 'Đổi mật khẩu thất bại.';
+          cpErrorEl.style.display = 'block';
+        } else {
+          alert(data.error);
+        }
+      }
+    } catch (err) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Cập Nhật Mật Khẩu';
+      if (cpErrorEl) {
+        cpErrorEl.innerText = 'Lỗi kết nối: ' + err.message;
+        cpErrorEl.style.display = 'block';
+      } else {
+        alert('Lỗi: ' + err.message);
+      }
+    }
+  });
 }
 
 function updateUserHeaderDisplay() {

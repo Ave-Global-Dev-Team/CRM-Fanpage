@@ -97,21 +97,35 @@ app.post('/api/auth/login', (req, res) => {
 
 app.post('/api/auth/change-password', (req, res) => {
   try {
-    const { username, oldPassword, newPassword } = req.body;
+    const { username, oldPassword, newPassword, confirmPassword } = req.body;
     if (!username || !newPassword) {
-      return res.status(400).json({ success: false, error: 'Thiếu thông tin mật khẩu.' });
+      return res.status(400).json({ success: false, error: 'Vui lòng điền đầy đủ thông tin mật khẩu.' });
     }
 
-    const user = db.prepare('SELECT id, password FROM staff WHERE name = ?').get(username);
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu xác nhận không trùng khớp.' });
+    }
+
+    const trimmedUser = username.trim();
+    const user = db.prepare(`
+      SELECT id, name, role, password 
+      FROM staff 
+      WHERE LOWER(TRIM(name)) = LOWER(?) OR LOWER(TRIM(code)) = LOWER(?)
+    `).get(trimmedUser, trimmedUser);
+
     if (!user) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản.' });
 
-    const currentPass = user.password || '123456';
-    if (oldPassword !== currentPass && oldPassword !== '123456') {
-      return res.status(400).json({ success: false, error: 'Mật khẩu cũ không đúng.' });
+    const currentPass = user.password || (user.role === 'admin' ? 'Admin@191' : '123456');
+    if (oldPassword !== currentPass) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu hiện tại không chính xác.' });
     }
 
     db.prepare('UPDATE staff SET password = ? WHERE id = ?').run(newPassword, user.id);
-    res.json({ success: true, message: 'Đổi mật khẩu thành công!' });
+    res.json({ success: true, message: 'Đổi mật khẩu thành công! Vui lòng ghi nhớ mật khẩu mới.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
