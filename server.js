@@ -370,13 +370,13 @@ app.get('/api/pages', (req, res) => {
       SELECT 
         p.*,
         '${endDate}' as selected_report_date,
-        (SELECT MAX(report_date) FROM daily_metrics WHERE page_name = p.name) as latest_report_date,
-        COALESCE((SELECT SUM(views) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_views,
-        COALESCE((SELECT SUM(post_count) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_posts_per_day,
-        COALESCE((SELECT SUM(post_count) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_post_count,
-        COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_engagement_rate,
-        COALESCE((SELECT MAX(followers) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_followers,
-        (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
+        (SELECT MAX(report_date) FROM daily_metrics d WHERE (p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) as latest_report_date,
+        COALESCE((SELECT SUM(views) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_views,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_posts_per_day,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_post_count,
+        COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_engagement_rate,
+        COALESCE((SELECT MAX(followers) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_followers,
+        (SELECT COUNT(*) FROM daily_metrics d WHERE (p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) as total_records
       FROM all_p p
     `;
     const params = [
@@ -1778,8 +1778,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
     const insertMetric = db.prepare(`
       INSERT OR REPLACE INTO daily_metrics 
-      (page_name, report_date, views, posts_per_day, post_count, interactions, engagement_rate, followers, source, raw_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (page_id, page_name, report_date, views, posts_per_day, post_count, interactions, engagement_rate, followers, source, raw_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const uploaderStaff = (req.query.staff_name || req.body?.staff_name || '').trim();
@@ -1829,6 +1829,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         }
 
         insertMetric.run(
+          item.page_id || '',
           item.page_name,
           item.report_date,
           item.views,
@@ -1959,12 +1960,12 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
     const fanpageReports = db.prepare(`
       SELECT 
         d.page_name as pageName,
-        COALESCE(p.page_id, '') as pageId,
+        COALESCE(NULLIF(d.page_id, ''), p.page_id, '') as pageId,
         COALESCE(d.post_count, d.posts_per_day, 0) as postsToday,
         d.views,
         d.report_date as updatedDate
       FROM daily_metrics d
-      LEFT JOIN pages p ON d.page_name = p.name
+      LEFT JOIN pages p ON (d.page_id IS NOT NULL AND d.page_id != '' AND p.page_id = d.page_id) OR d.page_name = p.name
       WHERE d.report_date = ?
     `).all(targetDate);
 

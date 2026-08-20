@@ -68,6 +68,7 @@ function initDb() {
 
     CREATE TABLE IF NOT EXISTS daily_metrics (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      page_id TEXT,
       page_name TEXT NOT NULL,
       report_date TEXT NOT NULL,
       views INTEGER DEFAULT 0,
@@ -76,10 +77,10 @@ function initDb() {
       interactions INTEGER DEFAULT 0,
       engagement_rate REAL DEFAULT 0,
       followers INTEGER DEFAULT 0,
-      source TEXT DEFAULT 'Google Apps Script',
+      source TEXT DEFAULT 'Fanpage Karma',
       raw_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(page_name, report_date) ON CONFLICT REPLACE
+      UNIQUE(page_id, page_name, report_date) ON CONFLICT REPLACE
     );
 
     CREATE TABLE IF NOT EXISTS webhook_logs (
