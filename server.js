@@ -139,8 +139,16 @@ app.get('/api/overview', (req, res) => {
     const { days = 14, staff_name, report_date, start_date, end_date } = req.query;
     const isStaffFiltered = staff_name && staff_name !== 'all' && staff_name !== 'Admin';
 
-    // Total pages
-    let totalPagesQuery = 'SELECT COUNT(*) as count FROM pages';
+    // Total pages (combining pages and master_pages)
+    let totalPagesQuery = `
+      WITH all_p AS (
+        SELECT p.name, COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name FROM pages p
+        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
+        UNION
+        SELECT m.page_name as name, m.staff_name FROM master_pages m
+      )
+      SELECT COUNT(*) as count FROM all_p
+    `;
     const totalPagesParams = [];
     if (isStaffFiltered) {
       totalPagesQuery += ' WHERE staff_name = ?';
@@ -170,7 +178,12 @@ app.get('/api/overview', (req, res) => {
     `;
     const statsParams = [];
     if (isStaffFiltered) {
-      statsQuery += ' JOIN pages p ON m.page_name = p.name WHERE m.report_date >= ? AND m.report_date <= ? AND p.staff_name = ?';
+      statsQuery += ` JOIN (
+        SELECT p.name, COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name FROM pages p
+        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
+        UNION
+        SELECT m.page_name as name, m.staff_name FROM master_pages m
+      ) p ON m.page_name = p.name WHERE m.report_date >= ? AND m.report_date <= ? AND p.staff_name = ?`;
       statsParams.push(startDate, endDate, staff_name);
     } else {
       statsQuery += ' WHERE m.report_date >= ? AND m.report_date <= ?';
@@ -185,7 +198,12 @@ app.get('/api/overview', (req, res) => {
     `;
     const topPageParams = [];
     if (isStaffFiltered) {
-      topPageQuery += ' JOIN pages p ON m.page_name = p.name WHERE m.report_date >= ? AND m.report_date <= ? AND p.staff_name = ?';
+      topPageQuery += ` JOIN (
+        SELECT p.name, COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name FROM pages p
+        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
+        UNION
+        SELECT m.page_name as name, m.staff_name FROM master_pages m
+      ) p ON m.page_name = p.name WHERE m.report_date >= ? AND m.report_date <= ? AND p.staff_name = ?`;
       topPageParams.push(startDate, endDate, staff_name);
     } else {
       topPageQuery += ' WHERE m.report_date >= ? AND m.report_date <= ?';
@@ -206,7 +224,12 @@ app.get('/api/overview', (req, res) => {
     `;
     const trendParams = [];
     if (isStaffFiltered) {
-      trendQuery += ' JOIN pages p ON m.page_name = p.name WHERE m.report_date >= ? AND m.report_date <= ? AND p.staff_name = ? GROUP BY m.report_date ORDER BY m.report_date ASC';
+      trendQuery += ` JOIN (
+        SELECT p.name, COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name FROM pages p
+        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
+        UNION
+        SELECT m.page_name as name, m.staff_name FROM master_pages m
+      ) p ON m.page_name = p.name WHERE m.report_date >= ? AND m.report_date <= ? AND p.staff_name = ? GROUP BY m.report_date ORDER BY m.report_date ASC`;
       trendParams.push(startDate, endDate, staff_name);
     } else {
       trendQuery += ' WHERE m.report_date >= ? AND m.report_date <= ? GROUP BY m.report_date ORDER BY m.report_date ASC';
@@ -313,6 +336,37 @@ app.get('/api/pages', (req, res) => {
     }
 
     let query = `
+      WITH all_p AS (
+        SELECT 
+          p.id,
+          p.name,
+          p.page_id,
+          p.page_url,
+          p.category,
+          p.avatar_url,
+          COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name,
+          COALESCE(NULLIF(p.topic, 'Chưa phân loại'), mp.topic, 'Chưa phân loại') as topic
+        FROM pages p
+        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
+        
+        UNION
+        
+        SELECT 
+          m.id + 100000 as id,
+          m.page_name as name,
+          m.page_id,
+          CASE WHEN m.page_id != '' THEN 'https://facebook.com/' || m.page_id ELSE '' END as page_url,
+          'Của tôi' as category,
+          NULL as avatar_url,
+          m.staff_name,
+          m.topic
+        FROM master_pages m
+        WHERE NOT EXISTS (
+          SELECT 1 FROM pages p 
+          WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND p.page_id = m.page_id) 
+             OR LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name))
+        )
+      )
       SELECT 
         p.*,
         '${endDate}' as selected_report_date,
@@ -322,7 +376,7 @@ app.get('/api/pages', (req, res) => {
         COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_engagement_rate,
         COALESCE((SELECT MAX(followers) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_followers,
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
-      FROM pages p
+      FROM all_p p
     `;
     const params = [startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate];
     if (staff_name && staff_name !== 'all' && staff_name !== 'Admin') {
