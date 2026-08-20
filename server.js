@@ -372,7 +372,8 @@ app.get('/api/pages', (req, res) => {
         '${endDate}' as selected_report_date,
         (SELECT MAX(report_date) FROM daily_metrics WHERE page_name = p.name) as latest_report_date,
         COALESCE((SELECT SUM(views) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_views,
-        COALESCE((SELECT AVG(posts_per_day) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_posts_per_day,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_posts_per_day,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_post_count,
         COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_engagement_rate,
         COALESCE((SELECT MAX(followers) FROM daily_metrics WHERE page_name = p.name AND report_date >= ? AND report_date <= ?), 0) as latest_followers,
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records

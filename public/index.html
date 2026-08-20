@@ -232,8 +232,8 @@
           <div class="chart-card glass-card span-6">
             <div class="card-header">
               <div class="header-left">
-                <h3><i class="fa-solid fa-signal"></i> Tần Suất Đăng Bài (Posts / Day)</h3>
-                <p>Tần suất đăng bài trung bình mỗi ngày giữa các trang</p>
+                <h3><i class="fa-solid fa-newspaper"></i> Số Lượng Bài Đăng (Number of posts)</h3>
+                <p>Tổng số bài đăng ghi nhận trong kỳ báo cáo giữa các trang</p>
               </div>
             </div>
             <div class="chart-container">
@@ -249,7 +249,7 @@
           <div class="card-header">
             <div class="header-left">
               <h3><i class="fa-solid fa-chart-pie" style="color: var(--accent-blue);"></i> Dashboard Báo Cáo Fanpage</h3>
-              <p>Sắp xếp, so sánh thứ hạng các Fanpage theo Views, Posts/day, ER và Người theo dõi</p>
+              <p>Sắp xếp, so sánh thứ hạng các Fanpage theo Views, Number of posts, ER và Người theo dõi</p>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
               <button class="btn btn-secondary btn-sm" id="btnDashboardQuickUpload" title="Nạp file báo cáo Fanpage Karma (.xlsx, .xls, .csv)">
@@ -271,7 +271,7 @@
               <i class="fa-solid fa-eye"></i> Top Lượt Xem (Views)
             </button>
             <button class="rank-pill" data-sort="latest_posts_per_day">
-              <i class="fa-solid fa-newspaper"></i> Top Bài/Ngày (Posts/day)
+              <i class="fa-solid fa-newspaper"></i> Top Bài Viết (Number of posts)
             </button>
             <button class="rank-pill" data-sort="latest_engagement_rate">
               <i class="fa-solid fa-fire"></i> Top Tương Tác (ER %)
@@ -301,7 +301,7 @@
                     Views (Báo cáo) <i class="fa-solid fa-sort-down sort-icon"></i>
                   </th>
                   <th class="sortable-th" data-col="latest_posts_per_day">
-                    Posts / Day <i class="fa-solid fa-sort sort-icon"></i>
+                    Number of posts <i class="fa-solid fa-sort sort-icon"></i>
                   </th>
                   <th class="sortable-th" data-col="latest_engagement_rate">
                     Tỷ lệ tương tác <i class="fa-solid fa-sort sort-icon"></i>
@@ -875,7 +875,7 @@
                   <th class="sortable-th sorted desc" data-col="report_date">Ngày Báo Cáo <i class="fa-solid fa-sort-down sort-icon"></i></th>
                   <th class="sortable-th" data-col="page_name">Tên Fanpage <i class="fa-solid fa-sort sort-icon"></i></th>
                   <th class="sortable-th" data-col="views">Lượt Xem (Views) <i class="fa-solid fa-sort sort-icon"></i></th>
-                  <th class="sortable-th" data-col="posts_per_day">Posts / Day <i class="fa-solid fa-sort sort-icon"></i></th>
+                  <th class="sortable-th" data-col="posts_per_day">Number of posts <i class="fa-solid fa-sort sort-icon"></i></th>
                   <th class="sortable-th" data-col="post_count">Tổng Bài Đăng <i class="fa-solid fa-sort sort-icon"></i></th>
                   <th class="sortable-th" data-col="interactions">Tương Tác <i class="fa-solid fa-sort sort-icon"></i></th>
                   <th class="sortable-th" data-col="engagement_rate">Tỷ Lệ ER <i class="fa-solid fa-sort sort-icon"></i></th>
@@ -1461,6 +1461,6 @@
   <!-- Notification Toast -->
   <div id="toast" class="toast"></div>
 
-  <script src="js/app.js?v=3.2"></script>
+  <script src="js/app.js?v=3.3"></script>
 </body>
 </html>

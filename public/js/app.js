@@ -1266,8 +1266,8 @@ function renderCharts(data) {
     data: {
       labels: pagesComp.map(p => p.page_name),
       datasets: [{
-        label: 'Tần suất Bài/Ngày',
-        data: pagesComp.map(p => p.posts_per_day),
+        label: 'Số lượng bài viết (Number of posts)',
+        data: pagesComp.map(p => p.post_count !== undefined && p.post_count !== null ? p.post_count : p.posts_per_day),
         backgroundColor: '#8b5cf6',
         borderRadius: 6
       }]
@@ -1486,7 +1486,7 @@ function renderSortedPagesTable() {
       <td><span class="category-tag ${catClass}">${escapeHtml(p.category || 'Của tôi')}</span></td>
       <td>${staffName}</td>
       <td><b style="color:var(--accent-blue); font-size:14px;">${formatNumber(p.latest_views || 0)}</b></td>
-      <td><span style="color:var(--accent-purple); font-weight:700;">${p.latest_posts_per_day ? p.latest_posts_per_day.toFixed(1) : '0.0'}</span> bài/ngày</td>
+      <td><span style="color:var(--accent-purple); font-weight:700;">${p.latest_post_count !== undefined && p.latest_post_count !== null ? formatNumber(p.latest_post_count) : formatNumber(p.latest_posts_per_day || 0)}</span> bài</td>
       <td><span style="color:var(--accent-emerald); font-weight:700;">${p.latest_engagement_rate ? p.latest_engagement_rate.toFixed(2) : '0.00'}%</span></td>
       <td><b>${formatNumber(p.latest_followers || 0)}</b></td>
       <td>${p.latest_report_date || 'Chưa có'}</td>
@@ -2266,7 +2266,7 @@ async function loadStaffData() {
               </span>
             </td>
             <td style="text-align: right;"><b style="color: var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
-            <td style="text-align: right;"><span style="color: var(--accent-purple); font-weight: 700;">${s.avg_posts_per_day ? s.avg_posts_per_day.toFixed(1) : '0.0'}</span> bài/ngày</td>
+            <td style="text-align: right;"><span style="color: var(--accent-purple); font-weight: 700;">${formatNumber(s.total_posts || s.reported_post_count || Math.round(s.avg_posts_per_day || 0))}</span> bài</td>
             <td style="text-align: right;"><span style="color: var(--accent-emerald); font-weight: 700;">${s.avg_engagement_rate ? s.avg_engagement_rate.toFixed(2) : '0.00'}%</span></td>
             <td style="text-align: center;">
               <button class="btn btn-secondary btn-sm" onclick="filterMasterListByStaff('${escapeHtml(s.name)}')" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" title="Lọc các page của ${escapeHtml(s.name)}">
@@ -3341,8 +3341,8 @@ function showTopicDetailModal(topicName) {
           </h4>
         </div>
         <div class="kpi-card glass-card" style="padding:12px;">
-          <span class="kpi-label">Tần Suất Đăng</span>
-          <h4 style="color:var(--accent-purple); margin:4px 0 0 0; font-size:18px;">${topic.avg_posts_per_day} bài/ngày</h4>
+          <span class="kpi-label">Số Lượng Bài Viết</span>
+          <h4 style="color:var(--accent-purple); margin:4px 0 0 0; font-size:18px;">${topic.total_posts || topic.avg_posts_per_day} bài</h4>
         </div>
         <div class="kpi-card glass-card" style="padding:12px;">
           <span class="kpi-label">Tỷ Lệ ER TB</span>
@@ -3361,7 +3361,7 @@ function showTopicDetailModal(topicName) {
             <i class="fa-solid fa-heart-pulse"></i> Top Tương Tác
           </button>
           <button class="rank-pill" data-topic-modal-sort="posts_per_day">
-            <i class="fa-solid fa-bullhorn"></i> Top Posts/Day
+            <i class="fa-solid fa-newspaper"></i> Top Số Bài
           </button>
           <button class="rank-pill" data-topic-modal-sort="engagement_rate">
             <i class="fa-solid fa-bolt"></i> Top ER (%)
@@ -3390,7 +3390,7 @@ function showTopicDetailModal(topicName) {
               <th class="sortable-th" data-tm-col="page_name">Fanpage <i class="fa-solid fa-sort sort-icon"></i></th>
               <th class="sortable-th" data-tm-col="staff_name">Nhân Sự Phụ Trách <i class="fa-solid fa-sort sort-icon"></i></th>
               <th class="sortable-th sorted desc" data-tm-col="views" style="text-align:right;">Views <i class="fa-solid fa-sort-down sort-icon"></i></th>
-              <th class="sortable-th" data-tm-col="posts_per_day" style="text-align:right;">Posts / Day <i class="fa-solid fa-sort sort-icon"></i></th>
+              <th class="sortable-th" data-tm-col="posts_per_day" style="text-align:right;">Number of posts <i class="fa-solid fa-sort sort-icon"></i></th>
               <th class="sortable-th" data-tm-col="interactions" style="text-align:right;">Tương Tác <i class="fa-solid fa-sort sort-icon"></i></th>
               <th class="sortable-th" data-tm-col="engagement_rate" style="text-align:right;">Tỷ Lệ ER <i class="fa-solid fa-sort sort-icon"></i></th>
               <th style="text-align:center; width:75px;">Link</th>
@@ -3542,7 +3542,7 @@ function renderTopicDetailTable() {
       </td>
       <td><span class="staff-badge assigned"><i class="fa-solid fa-user"></i> ${escapeHtml(p.staff_name || 'Chưa gán')}</span></td>
       <td style="text-align:right;"><b style="color:var(--accent-blue); font-size:14px;">${formatNumber(p.views || 0)}</b></td>
-      <td style="text-align:right;"><span style="color:var(--accent-purple); font-weight:700;">${(p.posts_per_day || 0).toFixed(1)}</span></td>
+      <td style="text-align:right;"><span style="color:var(--accent-purple); font-weight:700;">${p.post_count !== undefined && p.post_count !== null ? p.post_count : formatNumber(p.posts_per_day || 0)}</span> bài</td>
       <td style="text-align:right;"><b>${formatNumber(p.interactions || 0)}</b></td>
       <td style="text-align:right;"><span style="color:var(--accent-emerald); font-weight:700;">${(p.engagement_rate || 0).toFixed(2)}%</span></td>
       <td style="text-align:center;">
