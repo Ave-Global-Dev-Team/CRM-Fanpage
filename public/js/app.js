@@ -38,8 +38,8 @@ function initNavigation() {
       sub: 'Theo dõi Views, Tần suất bài đăng (Posts/day), Tương tác & So sánh đối thủ'
     },
     pages: {
-      title: 'Quản Lý Danh Sách Fanpage',
-      sub: 'Theo dõi các kênh thương hiệu và giám sát các trang đối thủ cạnh tranh'
+      title: 'Dashboard Báo Cáo Fanpage',
+      sub: 'Bảng xếp hạng hiệu suất Fanpage Karma, phân tích chỉ số và nạp file báo cáo'
     },
     'top-content': {
       title: 'Top 100 Posts Overview & Phân Tích Nội Dung',
@@ -2199,6 +2199,46 @@ function initUploadHandlers() {
     } finally {
       uploadBtn.disabled = false;
       uploadBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Xử Lý & Nạp Vào CRM';
+    }
+  });
+
+  // Quick Upload directly inside Dashboard Báo Cáo Fanpage
+  const btnDashboardQuickUpload = document.getElementById('btnDashboardQuickUpload');
+  const dashboardFileInput = document.getElementById('dashboardFileInput');
+
+  btnDashboardQuickUpload?.addEventListener('click', () => {
+    dashboardFileInput?.click();
+  });
+
+  dashboardFileInput?.addEventListener('change', async (e) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const oldBtnContent = btnDashboardQuickUpload.innerHTML;
+    btnDashboardQuickUpload.disabled = true;
+    btnDashboardQuickUpload.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nạp file...';
+    showToast(`Đang xử lý & phân tích file: ${file.name}...`);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast(`Thành công! ${json.message}`);
+        loadAllData();
+      } else {
+        alert('Lỗi nạp file: ' + json.error);
+      }
+    } catch (err) {
+      alert('Lỗi kết nối khi nạp file: ' + err.message);
+    } finally {
+      btnDashboardQuickUpload.disabled = false;
+      btnDashboardQuickUpload.innerHTML = oldBtnContent;
+      dashboardFileInput.value = '';
     }
   });
 }

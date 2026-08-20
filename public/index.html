@@ -31,8 +31,8 @@
           <span>Tổng quan & Phân tích</span>
         </button>
         <button class="nav-item" data-tab="pages">
-          <i class="fa-solid fa-flag"></i>
-          <span>Danh sách Fanpage</span>
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard Báo Cáo Fanpage</span>
           <span class="count-badge" id="navPageCount">0</span>
         </button>
         <button class="nav-item" data-tab="top-content">
@@ -245,17 +245,24 @@
         </div>
       </section>
 
-      <!-- TAB 2: PAGES MANAGEMENT -->
+      <!-- TAB 2: PAGES MANAGEMENT / DASHBOARD BÁO CÁO FANPAGE -->
       <section id="tab-pages" class="tab-content">
         <div class="glass-card">
           <div class="card-header">
             <div class="header-left">
-              <h3>Bảng Xếp Hạng & Quản Lý Fanpage</h3>
+              <h3><i class="fa-solid fa-chart-pie" style="color: var(--accent-blue);"></i> Dashboard Báo Cáo Fanpage</h3>
               <p>Sắp xếp, so sánh thứ hạng các Fanpage theo Views, Posts/day, ER và Người theo dõi</p>
             </div>
-            <div class="table-search-box">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="searchPagesInput" placeholder="Tìm kiếm theo tên hoặc ID trang...">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" id="btnDashboardQuickUpload" title="Nạp file báo cáo Fanpage Karma (.xlsx, .xls, .csv)">
+                <i class="fa-solid fa-file-import"></i> Nạp File Báo Cáo Karma
+              </button>
+              <input type="file" id="dashboardFileInput" accept=".xlsx, .xls, .csv" hidden>
+
+              <div class="table-search-box" style="margin-bottom: 0;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchPagesInput" placeholder="Tìm kiếm theo tên hoặc ID trang...">
+              </div>
             </div>
           </div>
 
