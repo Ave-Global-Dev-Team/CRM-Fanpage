@@ -2030,7 +2030,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
               tag: 'div',
               text: {
                 tag: 'lark_md',
-                content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng ít nhất 1 bài / page / ngày\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
+                content: `📅 **Thời gian kiểm tra:** 19:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng ít nhất 1 bài / page / ngày\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
               },
             },
             { tag: 'hr' },
@@ -2081,7 +2081,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
               header: {
                 title: {
                   tag: 'plain_text',
-                  content: '🚨 CẢNH BÁO 17:00: FANPAGE CHƯA ĐẠT CHỈ TIÊU BÀI ĐĂNG',
+                  content: '🚨 CẢNH BÁO 19:00: FANPAGE CHƯA ĐẠT CHỈ TIÊU BÀI ĐĂNG',
                 },
                 template: 'red',
               },
@@ -2095,7 +2095,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
               header: {
                 title: {
                   tag: 'plain_text',
-                  content: '🎉 BÁO CÁO 17:00: TẤT CẢ FANPAGE ĐÃ ĐẠT CHỈ TIÊU!',
+                  content: '🎉 BÁO CÁO 19:00: TẤT CẢ FANPAGE ĐÃ ĐẠT CHỈ TIÊU!',
                 },
                 template: 'green',
               },
