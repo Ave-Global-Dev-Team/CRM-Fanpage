@@ -203,6 +203,36 @@ function initDb() {
   try {
     db.prepare("DELETE FROM staff WHERE name IN ('Chưa phân bổ', 'Unassigned')").run();
   } catch (e) {}
+
+  // Deduplicate pages by page_id & sync master assignments
+  try {
+    const dupPageIds = db.prepare("SELECT page_id FROM pages WHERE page_id IS NOT NULL AND page_id != '' GROUP BY page_id HAVING COUNT(*) > 1").all();
+    for (const { page_id } of dupPageIds) {
+      const rows = db.prepare("SELECT * FROM pages WHERE page_id = ? ORDER BY CASE WHEN avatar_url IS NOT NULL AND avatar_url != '' THEN 0 ELSE 1 END, id ASC").all(page_id);
+      const canonical = rows[0];
+      const master = db.prepare("SELECT * FROM master_pages WHERE page_id = ?").get(page_id);
+      const finalStaff = master?.staff_name || rows.find(r => r.staff_name && r.staff_name !== 'Chưa phân bổ')?.staff_name || 'Chưa phân bổ';
+      const finalTopic = master?.topic || rows.find(r => r.topic && r.topic !== 'Chưa phân loại')?.topic || 'Chưa phân loại';
+      const finalAvatar = rows.find(r => r.avatar_url && r.avatar_url.trim() !== '')?.avatar_url || null;
+      const finalName = master?.page_name || canonical.name;
+
+      db.prepare("UPDATE pages SET name = ?, staff_name = ?, topic = ?, avatar_url = ? WHERE id = ?").run(
+        finalName, finalStaff, finalTopic, finalAvatar, canonical.id
+      );
+
+      for (let i = 1; i < rows.length; i++) {
+        db.prepare("DELETE FROM pages WHERE id = ?").run(rows[i].id);
+      }
+    }
+
+    // Sync all master assignments to pages
+    const allMasters = db.prepare("SELECT * FROM master_pages").all();
+    for (const m of allMasters) {
+      if (m.page_id) {
+        db.prepare("UPDATE pages SET staff_name = ?, topic = ?, name = ? WHERE page_id = ?").run(m.staff_name, m.topic, m.page_name, m.page_id);
+      }
+    }
+  } catch (e) {}
 }
 
 function seedSampleData() {
