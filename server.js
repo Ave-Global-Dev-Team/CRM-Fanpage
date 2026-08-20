@@ -73,10 +73,10 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(401).json({ success: false, error: 'Tài khoản không tồn tại trong hệ thống.' });
     }
 
-    // Default fallback password if null in DB is '123456'
-    const dbPass = user.password || '123456';
-    if (password !== dbPass && password !== 'admin123' && password !== '123456') {
-      return res.status(401).json({ success: false, error: 'Mật khẩu không chính xác. Mặc định là: 123456' });
+    // Validate password
+    const dbPass = user.password || (user.role === 'admin' ? 'Admin@191' : '123456');
+    if (password !== dbPass) {
+      return res.status(401).json({ success: false, error: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại.' });
     }
 
     res.json({

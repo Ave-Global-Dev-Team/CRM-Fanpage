@@ -132,8 +132,9 @@ function initDb() {
   try { db.exec("ALTER TABLE staff ADD COLUMN role TEXT DEFAULT 'staff';"); } catch (e) {}
   try { db.exec("ALTER TABLE staff ADD COLUMN password TEXT DEFAULT '123456';"); } catch (e) {}
 
-  // Ensure Admin account exists
-  db.prepare("INSERT OR IGNORE INTO staff (name, role, department) VALUES ('Admin', 'admin', 'Ban Giám Đốc')").run();
+  // Ensure Admin account exists with password Admin@191
+  db.prepare("INSERT OR IGNORE INTO staff (name, role, password, department) VALUES ('Admin', 'admin', 'Admin@191', 'Ban Giám Đốc')").run();
+  db.prepare("UPDATE staff SET password = 'Admin@191' WHERE role = 'admin' OR name = 'Admin'").run();
 
   // Migration: clean deleted staff & rename requested staff
   try {
