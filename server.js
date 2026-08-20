@@ -399,7 +399,27 @@ app.get('/api/staff', (req, res) => {
           FROM pages p 
           WHERE p.staff_name = s.name 
           AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) > 0
+          AND (
+            p.page_id NOT IN (SELECT page_id FROM master_pages WHERE page_id IS NOT NULL AND page_id != '' AND staff_name = s.name AND LOWER(status) LIKE '%lỗi%')
+            OR p.page_id IS NULL OR p.page_id = ''
+          )
         ) as reported_pages_count,
+        (
+          SELECT COUNT(DISTINCT p.id) 
+          FROM pages p 
+          WHERE p.staff_name = s.name 
+          AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) = 0
+          AND (
+            p.page_id NOT IN (SELECT page_id FROM master_pages WHERE page_id IS NOT NULL AND page_id != '' AND staff_name = s.name AND LOWER(status) LIKE '%lỗi%')
+            OR p.page_id IS NULL OR p.page_id = ''
+          )
+        ) as no_data_pages_count,
+        (
+          SELECT COUNT(DISTINCT m.id)
+          FROM master_pages m
+          WHERE m.staff_name = s.name
+          AND LOWER(m.status) LIKE '%lỗi%'
+        ) as error_pages_count,
         (
           SELECT COUNT(DISTINCT p.id) 
           FROM pages p 

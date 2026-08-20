@@ -266,10 +266,42 @@ function updateUserHeaderDisplay() {
     subTitle.innerText = 'Theo dõi Views, Tần suất bài đăng (Posts/day), Tương tác & So sánh đối thủ';
   }
 
+  const isAdmin = currentUser.role === 'admin';
+
   // Hide or show Webhook tab based on role
   const webhookNavBtn = document.querySelector('.nav-item[data-tab="webhook"]');
   if (webhookNavBtn) {
-    webhookNavBtn.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    webhookNavBtn.style.display = isAdmin ? 'flex' : 'none';
+  }
+
+  // Hide or show Staff Tab KPI cards based on role (Admin only)
+  const staffKpiGrid = document.getElementById('staffKpiGrid');
+  if (staffKpiGrid) {
+    staffKpiGrid.style.display = isAdmin ? 'grid' : 'none';
+  }
+
+  // Personal Staff KPI Bar (Horizontal bar displayed for non-admin staff)
+  const staffPersonalKpiBar = document.getElementById('staffPersonalKpiBar');
+  if (staffPersonalKpiBar) {
+    staffPersonalKpiBar.style.display = !isAdmin ? 'grid' : 'none';
+  }
+
+  // Hide or show Staff Leaderboard Table (Admin only)
+  const staffLeaderboardCard = document.getElementById('staffLeaderboardCard');
+  if (staffLeaderboardCard) {
+    staffLeaderboardCard.style.display = isAdmin ? 'flex' : 'none';
+  }
+
+  // Expand Master Pages Card to full width if staff
+  const masterPagesCard = document.getElementById('masterPagesCard');
+  if (masterPagesCard) {
+    masterPagesCard.className = isAdmin ? 'glass-card span-7' : 'glass-card span-12';
+  }
+
+  // Hide or show Add Staff button based on role
+  const btnOpenAddStaffModal = document.getElementById('btnOpenAddStaffModal');
+  if (btnOpenAddStaffModal) {
+    btnOpenAddStaffModal.style.display = isAdmin ? 'inline-flex' : 'none';
   }
 }
 
@@ -1593,6 +1625,56 @@ async function loadStaffData() {
 
     allStaffList = json.data;
     const unassignedCount = json.unassignedCount || 0;
+    const isAdmin = currentUser && currentUser.role === 'admin';
+
+    // Toggle KPI Grid visibility (Admin only)
+    const staffKpiGrid = document.getElementById('staffKpiGrid');
+    if (staffKpiGrid) {
+      staffKpiGrid.style.display = isAdmin ? 'grid' : 'none';
+    }
+
+    // Toggle Personal KPI Bar (Staff only)
+    const staffPersonalKpiBar = document.getElementById('staffPersonalKpiBar');
+    if (staffPersonalKpiBar) {
+      staffPersonalKpiBar.style.display = !isAdmin ? 'grid' : 'none';
+    }
+
+    // Toggle Staff Leaderboard & Master Card Width
+    const staffLeaderboardCard = document.getElementById('staffLeaderboardCard');
+    if (staffLeaderboardCard) {
+      staffLeaderboardCard.style.display = isAdmin ? 'flex' : 'none';
+    }
+    const masterPagesCard = document.getElementById('masterPagesCard');
+    if (masterPagesCard) {
+      masterPagesCard.className = isAdmin ? 'glass-card span-7' : 'glass-card span-12';
+    }
+
+    // Update Personal Staff Stats for non-admin
+    if (!isAdmin && currentUser && currentUser.name) {
+      const myStaff = allStaffList.find(s => s.name === currentUser.name) || {};
+      const myReported = myStaff.reported_pages_count || 0;
+      const myNoData = myStaff.no_data_pages_count || 0;
+      const myError = myStaff.error_pages_count || 0;
+      const myTotal = myStaff.total_pages_assigned || (myReported + myNoData + myError);
+      const myViews = myStaff.total_views_latest || 0;
+      const myAvgPosts = myStaff.avg_posts_per_day || 0;
+
+      const elRep = document.getElementById('kpiPersonalReported');
+      const elNoData = document.getElementById('kpiPersonalNoData');
+      const elError = document.getElementById('kpiPersonalError');
+      const elTot = document.getElementById('kpiPersonalTotal');
+      const elName = document.getElementById('kpiPersonalStaffName');
+      const elViews = document.getElementById('kpiPersonalViews');
+      const elAvg = document.getElementById('kpiPersonalAvgPosts');
+
+      if (elRep) elRep.innerText = myReported;
+      if (elNoData) elNoData.innerText = myNoData;
+      if (elError) elError.innerText = myError;
+      if (elTot) elTot.innerText = myTotal;
+      if (elName) elName.innerText = currentUser.name;
+      if (elViews) elViews.innerText = `${formatNumber(myViews)} views`;
+      if (elAvg) elAvg.innerText = `TB: ${myAvgPosts.toFixed(1)} bài/ngày`;
+    }
 
     // Update KPI badges
     document.getElementById('navStaffCount').innerText = allStaffList.length;
@@ -1634,11 +1716,12 @@ async function loadStaffData() {
     if (tbody) {
       tbody.innerHTML = '';
       if (allStaffList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
       } else {
         allStaffList.forEach(s => {
           const reported = s.reported_pages_count || 0;
-          const unreported = s.unreported_pages_count || 0;
+          const noData = s.no_data_pages_count || 0;
+          const errorCount = s.error_pages_count || 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>
@@ -1651,8 +1734,13 @@ async function loadStaffData() {
               </span>
             </td>
             <td style="text-align: center;">
-              <span class="badge" style="background: ${unreported > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.04)'}; color: ${unreported > 0 ? '#f59e0b' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${unreported > 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent'};">
-                <i class="fa-solid ${unreported > 0 ? 'fa-clock' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${unreported}
+              <span class="badge" style="background: ${noData > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.04)'}; color: ${noData > 0 ? '#f59e0b' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${noData > 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent'};">
+                <i class="fa-solid ${noData > 0 ? 'fa-clock' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${noData}
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: ${errorCount > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.04)'}; color: ${errorCount > 0 ? '#f43f5e' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${errorCount > 0 ? 'rgba(239, 68, 68, 0.3)' : 'transparent'};">
+                <i class="fa-solid ${errorCount > 0 ? 'fa-triangle-exclamation' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${errorCount}
               </span>
             </td>
             <td style="text-align: right;"><b style="color:var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
@@ -1708,7 +1796,6 @@ function renderMasterPagesTable() {
   list.forEach(m => {
     const isError = (m.status || '').toLowerCase().includes('lỗi');
     const statusClass = isError ? 'error' : 'active';
-    const bmWorkflow = [m.bm, m.workflow].filter(Boolean).join(' · ') || (m.department || 'Content Marketing');
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1718,7 +1805,6 @@ function renderMasterPagesTable() {
       </td>
       <td>${getTopicBadge(m.topic)}</td>
       <td><span class="staff-badge assigned"><i class="fa-solid fa-user"></i> ${escapeHtml(m.staff_name)}</span></td>
-      <td><small style="color:var(--text-main); font-weight:600;">${escapeHtml(bmWorkflow)}</small></td>
       <td><span class="status-badge-pill ${statusClass}">${escapeHtml(m.status || m.sync_status || 'Active')}</span></td>
       <td>
         <button class="icon-btn danger" onclick="deleteMasterAssignment(${m.id})" title="Xóa phân bổ gốc">

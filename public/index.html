@@ -623,7 +623,7 @@
       <!-- TAB 3: STAFF & MASTER ASSIGNMENT LIST -->
       <section id="tab-staff" class="tab-content">
         <!-- Staff Performance Leaderboard -->
-        <div class="kpi-grid">
+        <div class="kpi-grid" id="staffKpiGrid">
           <div class="kpi-card glass-card">
             <div class="kpi-icon purple">
               <i class="fa-solid fa-users"></i>
@@ -681,10 +681,83 @@
           </div>
         </div>
 
+        <!-- Personal Staff Performance (Displayed horizontally for staff) -->
+        <div id="staffPersonalKpiBar" class="kpi-grid" style="display: none; margin-bottom: 20px;">
+          <div class="kpi-card glass-card">
+            <div class="kpi-icon emerald">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Page Đã Báo Cáo</span>
+              <h3 class="kpi-value" id="kpiPersonalReported">0</h3>
+              <div class="kpi-trend up">
+                <i class="fa-solid fa-cloud-arrow-down"></i>
+                <span>Đã có số liệu Karma</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card glass-card">
+            <div class="kpi-icon amber">
+              <i class="fa-solid fa-clock"></i>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Chưa Có Dữ Liệu</span>
+              <h3 class="kpi-value" id="kpiPersonalNoData">0</h3>
+              <div class="kpi-trend neutral">
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>Đang chờ dữ liệu</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card glass-card">
+            <div class="kpi-icon rose">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Trạng Thái Lỗi</span>
+              <h3 class="kpi-value" id="kpiPersonalError" style="color: var(--accent-rose);">0</h3>
+              <div class="kpi-trend down">
+                <i class="fa-solid fa-bug"></i>
+                <span>Cần kiểm tra lại</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card glass-card">
+            <div class="kpi-icon purple">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Tổng Page Của Bạn</span>
+              <h3 class="kpi-value" id="kpiPersonalTotal">0</h3>
+              <div class="kpi-trend up">
+                <i class="fa-solid fa-user-tag"></i>
+                <span id="kpiPersonalStaffName">Đang phụ trách</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card glass-card">
+            <div class="kpi-icon blue">
+              <i class="fa-solid fa-chart-simple"></i>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Tổng Views Đạt Được</span>
+              <h3 class="kpi-value" id="kpiPersonalViews">0</h3>
+              <div class="kpi-trend up">
+                <i class="fa-solid fa-fire"></i>
+                <span id="kpiPersonalAvgPosts">TB: 0 bài/ngày</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Staff Performance Table & Master Assignment -->
-        <div class="charts-row">
+        <div class="charts-row" id="staffChartsRow">
           <!-- Staff Leaderboard -->
-          <div class="glass-card span-5">
+          <div class="glass-card span-5" id="staffLeaderboardCard">
             <div class="card-header">
               <div class="header-left">
                 <h3><i class="fa-solid fa-trophy"></i> Hiệu Suất Theo Nhân Sự</h3>
@@ -700,8 +773,9 @@
                 <thead>
                   <tr>
                     <th>Nhân Sự</th>
-                    <th style="text-align: center; white-space: nowrap;">Page Đã Báo Cáo</th>
-                    <th style="text-align: center; white-space: nowrap;">Page Chưa Báo Cáo</th>
+                    <th style="text-align: center; white-space: nowrap;">Đã Báo Cáo</th>
+                    <th style="text-align: center; white-space: nowrap;">Chưa Dữ Liệu</th>
+                    <th style="text-align: center; white-space: nowrap;">Trạng Thái Lỗi</th>
                     <th style="text-align: right; white-space: nowrap;">Tổng Views</th>
                     <th style="text-align: right; white-space: nowrap;">TB Bài/Ngày</th>
                   </tr>
@@ -714,7 +788,7 @@
           </div>
 
           <!-- Master Page Assignment List -->
-          <div class="glass-card span-7">
+          <div class="glass-card span-7" id="masterPagesCard">
             <div class="card-header">
               <div class="header-left">
                 <h3><i class="fa-solid fa-clipboard-list"></i> Danh Sách Nhân Sự + Fanpage</h3>
@@ -743,7 +817,6 @@
                     <th>Fanpage (Danh Sách Gốc)</th>
                     <th>Chủ Đề</th>
                     <th>Nhân Sự Phụ Trách</th>
-                    <th>BM / Workflow</th>
                     <th>Trạng Thái</th>
                     <th>Hành Động</th>
                   </tr>
