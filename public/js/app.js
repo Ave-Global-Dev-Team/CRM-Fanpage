@@ -1747,11 +1747,11 @@ async function loadStaffData() {
     // Toggle Staff Leaderboard & Master Card Width
     const staffLeaderboardCard = document.getElementById('staffLeaderboardCard');
     if (staffLeaderboardCard) {
-      staffLeaderboardCard.style.display = isAdmin ? 'flex' : 'none';
+      staffLeaderboardCard.style.display = isAdmin ? 'block' : 'none';
     }
     const masterPagesCard = document.getElementById('masterPagesCard');
     if (masterPagesCard) {
-      masterPagesCard.className = isAdmin ? 'glass-card span-7' : 'glass-card span-12';
+      masterPagesCard.className = 'glass-card span-12';
     }
 
     // Update Personal Staff Stats for non-admin

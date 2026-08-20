@@ -532,6 +532,11 @@ body {
   flex-direction: column;
 }
 
+#staffLeaderboardCard {
+  display: block;
+  width: 100%;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
