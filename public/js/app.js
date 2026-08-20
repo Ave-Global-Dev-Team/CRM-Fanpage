@@ -1032,6 +1032,17 @@ function formatDateObj(d) {
   return `${y}-${m}-${day}`;
 }
 
+function updateSelectedDateDisplay() {
+  const displayEl = document.getElementById('displaySelectedDateRange');
+  if (displayEl) {
+    if (currentStartDate === currentEndDate) {
+      displayEl.innerText = currentStartDate;
+    } else {
+      displayEl.innerText = `${currentStartDate} ➔ ${currentEndDate}`;
+    }
+  }
+}
+
 function applySelectedDateRange() {
   if (!tempEndDate) {
     tempEndDate = tempStartDate;
@@ -1041,18 +1052,12 @@ function applySelectedDateRange() {
   currentEndDate = tempEndDate;
   currentSelectedReportDate = tempEndDate;
 
-  const displayEl = document.getElementById('displaySelectedDateRange');
-  if (displayEl) {
-    if (currentStartDate === currentEndDate) {
-      displayEl.innerText = currentStartDate;
-    } else {
-      displayEl.innerText = `${currentStartDate} ➔ ${currentEndDate}`;
-    }
-  }
+  updateSelectedDateDisplay();
 
   const modal = document.getElementById('dateRangePickerModal');
   if (modal) modal.classList.remove('active');
 
+  const displayEl = document.getElementById('displaySelectedDateRange');
   showToast(`Đang hiển thị báo cáo: ${displayEl ? displayEl.innerText : currentEndDate}`);
   loadAllData();
 }
