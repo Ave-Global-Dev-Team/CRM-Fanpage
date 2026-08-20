@@ -480,6 +480,29 @@
         }
       }
 
+      // Check if redirected back with #access_token=... (OAuth Redirect Flow)
+      if (window.location.hash && window.location.hash.includes('access_token=')) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const stateStaff = hashParams.get('state');
+
+        if (stateStaff) {
+          const sel = document.getElementById('selectStaff');
+          for (let opt of sel.options) {
+            if (opt.value === decodeURIComponent(stateStaff) || opt.value.toLowerCase().includes(decodeURIComponent(stateStaff).toLowerCase())) {
+              sel.value = opt.value;
+              break;
+            }
+          }
+        }
+
+        if (accessToken) {
+          document.getElementById('fbBtnText').innerText = 'Đang quét toàn bộ danh sách Fanpage...';
+          document.getElementById('btnFbLogin').disabled = true;
+          fetchManagedPages(accessToken);
+        }
+      }
+
       // Tab Handlers
       const tabFb = document.getElementById('tabBtnFbLogin');
       const tabToken = document.getElementById('tabBtnToken');
