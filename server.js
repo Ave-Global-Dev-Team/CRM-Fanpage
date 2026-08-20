@@ -514,13 +514,17 @@ app.get('/api/master-pages', (req, res) => {
     let query = `
       SELECT 
         m.*,
-        p.avatar_url,
+        (
+          SELECT avatar_url FROM pages p 
+          WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND p.page_id = m.page_id)
+             OR (p.name = m.page_name)
+          LIMIT 1
+        ) as avatar_url,
         (SELECT views FROM daily_metrics WHERE page_name = m.page_name ORDER BY report_date DESC LIMIT 1) as latest_views,
         (SELECT posts_per_day FROM daily_metrics WHERE page_name = m.page_name ORDER BY report_date DESC LIMIT 1) as latest_posts_per_day,
         (SELECT MAX(report_date) FROM daily_metrics WHERE page_name = m.page_name) as latest_report_date,
         CASE WHEN (SELECT COUNT(*) FROM daily_metrics WHERE page_name = m.page_name) > 0 THEN 'Đã đồng bộ' ELSE 'Chờ báo cáo' END as sync_status
       FROM master_pages m
-      LEFT JOIN pages p ON (m.page_id != '' AND m.page_id = p.page_id) OR m.page_name = p.name
     `;
     const params = [];
     if (staff_name && staff_name !== 'all' && staff_name !== 'Admin') {
