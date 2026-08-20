@@ -143,15 +143,15 @@ function initDb() {
     db.prepare("UPDATE pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Thị B', 'Mai Đức', 'Nguyễn Văn A')").run();
     db.prepare("UPDATE posts SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Thị B', 'Mai Đức', 'Nguyễn Văn A')").run();
 
-    db.prepare("UPDATE staff SET name = 'Mai Văn Đức ( AFF Fitness)', department = 'AFF Fitness' WHERE name IN ('Đức n8n Fitness')").run();
     db.prepare("UPDATE pages SET staff_name = 'Mai Văn Đức ( AFF Fitness)' WHERE staff_name = 'Đức n8n Fitness'").run();
     db.prepare("UPDATE master_pages SET staff_name = 'Mai Văn Đức ( AFF Fitness)', department = 'AFF Fitness' WHERE staff_name = 'Đức n8n Fitness'").run();
     db.prepare("UPDATE posts SET staff_name = 'Mai Văn Đức ( AFF Fitness)' WHERE staff_name = 'Đức n8n Fitness'").run();
 
-    db.prepare("UPDATE staff SET name = 'Mai Văn Đức ( AFF Decor)', department = 'AFF Decor' WHERE name IN ('Đức decor n8n')").run();
     db.prepare("UPDATE pages SET staff_name = 'Mai Văn Đức ( AFF Decor)' WHERE staff_name = 'Đức decor n8n'").run();
     db.prepare("UPDATE master_pages SET staff_name = 'Mai Văn Đức ( AFF Decor)', department = 'AFF Decor' WHERE staff_name = 'Đức decor n8n'").run();
     db.prepare("UPDATE posts SET staff_name = 'Mai Văn Đức ( AFF Decor)' WHERE staff_name = 'Đức decor n8n'").run();
+
+    db.prepare("DELETE FROM staff WHERE name IN ('Đức n8n Fitness', 'Đức decor n8n')").run();
   } catch (e) {
     console.error('Migration staff error:', e);
   }
@@ -200,20 +200,20 @@ function seedSampleData() {
     INSERT INTO master_pages (page_name, page_id, staff_name, department, topic, bm, workflow, status, note)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const findPage = db.prepare("SELECT id FROM pages WHERE name = ?");
-  const updatePage = db.prepare("UPDATE pages SET page_id = ?, page_url = ?, staff_name = ?, topic = ? WHERE id = ?");
+  const findPage = db.prepare("SELECT id FROM pages WHERE page_id = ?");
+  const updatePage = db.prepare("UPDATE pages SET name = ?, page_url = ?, staff_name = ?, topic = ? WHERE id = ?");
   const insertNewPage = db.prepare("INSERT INTO pages (name, page_id, page_url, category, staff_name, topic) VALUES (?, ?, ?, 'Của tôi', ?, ?)");
 
   samplePages.forEach(p => {
     insertStaff.run(p.staff, p.bm ? `BM: ${p.bm}` : 'Content Marketing');
     
-    db.prepare("DELETE FROM master_pages WHERE page_id = ? OR page_name = ?").run(p.page_id, p.name);
+    db.prepare("DELETE FROM master_pages WHERE page_id = ?").run(p.page_id);
     insertMaster.run(p.name, p.page_id, p.staff, p.bm ? `BM: ${p.bm}` : 'Content Marketing', p.topic, p.bm, p.workflow, p.status, '');
     
-    const ex = findPage.get(p.name);
+    const ex = findPage.get(p.page_id);
     const fbUrl = `https://facebook.com/${p.page_id}`;
     if (ex) {
-      updatePage.run(p.page_id, fbUrl, p.staff, p.topic, ex.id);
+      updatePage.run(p.name, fbUrl, p.staff, p.topic, ex.id);
     } else {
       insertNewPage.run(p.name, p.page_id, fbUrl, p.staff, p.topic);
     }

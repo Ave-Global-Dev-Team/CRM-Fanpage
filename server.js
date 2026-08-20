@@ -609,8 +609,9 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const findExistingPage = db.prepare("SELECT id FROM pages WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR name = ?");
-    const updatePageStaff = db.prepare("UPDATE pages SET staff_name = ?, topic = ?, page_id = CASE WHEN ? != '' THEN ? ELSE page_id END, page_url = CASE WHEN ? != '' THEN ? ELSE page_url END WHERE id = ?");
+    const findByPageId = db.prepare("SELECT id FROM pages WHERE page_id IS NOT NULL AND page_id != '' AND page_id = ?");
+    const findByName = db.prepare("SELECT id FROM pages WHERE name = ? AND (page_id IS NULL OR page_id = '')");
+    const updatePageStaff = db.prepare("UPDATE pages SET name = ?, staff_name = ?, topic = ?, page_url = CASE WHEN ? != '' THEN ? ELSE page_url END WHERE id = ?");
     const insertNewPage = db.prepare("INSERT INTO pages (name, page_id, page_url, staff_name, topic) VALUES (?, ?, ?, ?, ?)");
 
     const uploaderStaff = (req.query.staff_name || req.body?.staff_name || '').trim();
@@ -665,15 +666,21 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
           if (pageId) deleteOldMasterById.run(pageId);
           insertMaster.run(finalPageName, pageId, staffName, department, topic, bm, workflow, status, note);
 
-          // Sync to pages table
-          const existing = findExistingPage.get(pageId, finalPageName);
+          // Sync to pages table by page_id first, or name if no page_id
+          let existing = null;
+          if (pageId) {
+            existing = findByPageId.get(pageId);
+          } else {
+            existing = findByName.get(finalPageName);
+          }
+
           if (existing) {
-            updatePageStaff.run(staffName, topic, pageId, pageId, pageUrl, pageUrl, existing.id);
+            updatePageStaff.run(finalPageName, staffName, topic, pageUrl, pageUrl, existing.id);
           } else {
             try {
               insertNewPage.run(finalPageName, pageId, pageUrl, staffName, topic);
             } catch (e) {
-              // Ignore if duplicate name without ID
+              // Ignore if any constraint
             }
           }
 
