@@ -414,6 +414,18 @@ function findStaffForPage(pageName, pageId) {
   return null;
 }
 
+function findTopicForPage(pageName, pageId) {
+  if (pageId) {
+    const byId = db.prepare('SELECT topic FROM master_pages WHERE page_id = ?').get(String(pageId).trim());
+    if (byId && byId.topic && byId.topic !== 'Chưa phân loại') return byId.topic;
+  }
+  if (pageName) {
+    const byName = db.prepare('SELECT topic FROM master_pages WHERE LOWER(TRIM(page_name)) = LOWER(TRIM(?))').get(pageName);
+    if (byName && byName.topic && byName.topic !== 'Chưa phân loại') return byName.topic;
+  }
+  return null;
+}
+
 // Get Staff list with aggregated performance KPI
 app.get('/api/staff', (req, res) => {
   try {
@@ -1517,10 +1529,12 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         return null;
       };
 
-      const pageName = findKey(['profile', 'fanpage', 'pagename', 'page', 'name', 'tên']) || 'Unknown Page';
-      const pageIdRaw = findKey(['profileid', 'pageid', 'profile_id', 'id']);
-      const avatarRaw = findKey(['imagelink', 'image', 'avatar', 'avatarurl', 'logo']);
+      const pageName = findKey(['tênpage', 'tenpage', 'têntrang', 'tentrang', 'fanpage', 'pagename', 'page', 'profile', 'name', 'tên']) || 'Unknown Page';
+      const pageIdRaw = findKey(['profile-id', 'profileid', 'idpage', 'id page', 'pageid', 'page id', 'id', 'mãpage', 'mapage', 'fb id', 'fbid']);
+      const avatarRaw = findKey(['imagelink', 'image', 'avatar', 'avatarurl', 'logo', 'ảnh']);
       const linkRaw = findKey(['link', 'urllink', 'url', 'profilelink']);
+      const topicRaw = findKey(['chủđề', 'chude', 'chủde', 'topic', 'theme', 'niche', 'chuyênmục', 'chuyenmuc', 'ngành', 'lĩnhvực', 'linhvuc', 'category']);
+      const staffRaw = findKey(['nhânsựphụtrách', 'nhansuphutrach', 'nhânsự', 'nhansu', 'ngườiphụtrách', 'nguoiphutrach', 'nhânviên', 'nhanvien', 'staff', 'owner', 'assignee', 'nv']);
 
       let pageId = '';
       let pageUrl = '';
@@ -1584,6 +1598,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         page_id: pageId,
         page_url: pageUrl,
         avatar_url: avatarUrl,
+        topic: topicRaw ? String(topicRaw).trim() : '',
+        staff_name: staffRaw ? String(staffRaw).trim() : '',
         report_date: String(dateVal).substring(0, 10),
         views,
         posts_per_day: postsPerDay,
@@ -1611,13 +1627,14 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         page_id = CASE WHEN ? != '' THEN ? ELSE page_id END,
         page_url = CASE WHEN ? != '' THEN ? ELSE page_url END,
         avatar_url = CASE WHEN ? != '' THEN ? ELSE avatar_url END,
-        staff_name = CASE WHEN ? != 'Chưa phân bổ' THEN ? ELSE staff_name END
+        staff_name = CASE WHEN ? != 'Chưa phân bổ' THEN ? ELSE staff_name END,
+        topic = CASE WHEN ? != 'Chưa phân loại' THEN ? ELSE topic END
       WHERE id = ?
     `);
 
     const insertNewPage = db.prepare(`
-      INSERT INTO pages (name, category, page_id, page_url, avatar_url, staff_name) 
-      VALUES (?, 'Của tôi', ?, ?, ?, ?)
+      INSERT INTO pages (name, category, page_id, page_url, avatar_url, staff_name, topic) 
+      VALUES (?, 'Của tôi', ?, ?, ?, ?, ?)
     `);
 
     const insertMetric = db.prepare(`
@@ -1626,11 +1643,24 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
+    const uploaderStaff = (req.query.staff_name || req.body?.staff_name || '').trim();
+    const isStaffUploader = uploaderStaff && uploaderStaff !== 'Admin';
+
     let count = 0;
     const trx = db.transaction((items) => {
       for (const item of items) {
-        // Auto cross reference staff
-        const matchedStaff = findStaffForPage(item.page_name, item.page_id) || 'Chưa phân bổ';
+        // Determine Staff Name: from file -> or logged-in staff -> or cross-reference master_pages
+        let finalStaff = 'Chưa phân bổ';
+        if (item.staff_name) {
+          finalStaff = item.staff_name;
+        } else if (isStaffUploader) {
+          finalStaff = uploaderStaff;
+        } else {
+          finalStaff = findStaffForPage(item.page_name, item.page_id) || 'Chưa phân bổ';
+        }
+
+        // Determine Topic: from file -> or cross-reference master_pages
+        const finalTopic = item.topic || findTopicForPage(item.page_name, item.page_id) || 'Chưa phân loại';
 
         const existing = findExistingPage.get(item.page_id || '', item.page_name);
         if (existing) {
@@ -1638,11 +1668,12 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
             item.page_id || '', item.page_id || '',
             item.page_url || '', item.page_url || '',
             item.avatar_url || '', item.avatar_url || '',
-            matchedStaff, matchedStaff,
+            finalStaff, finalStaff,
+            finalTopic, finalTopic,
             existing.id
           );
         } else {
-          insertNewPage.run(item.page_name, item.page_id || '', item.page_url || '', item.avatar_url || '', matchedStaff);
+          insertNewPage.run(item.page_name, item.page_id || '', item.page_url || '', item.avatar_url || '', finalStaff, finalTopic);
         }
         insertMetric.run(
           item.page_name,

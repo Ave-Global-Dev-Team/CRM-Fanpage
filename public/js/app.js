@@ -2298,11 +2298,12 @@ function initUploadHandlers() {
     dashboardFileInput?.click();
   });
 
-  dashboardFileInput?.addEventListener('change', async (e) => {
-    if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append('file', file);
+    if (currentUser && currentUser.name) {
+      formData.append('staff_name', currentUser.name);
+    }
     if (currentSelectedReportDate) {
       formData.append('report_date', currentSelectedReportDate);
     }
