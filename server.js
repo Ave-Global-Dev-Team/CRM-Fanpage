@@ -2030,7 +2030,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
               tag: 'div',
               text: {
                 tag: 'lark_md',
-                content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **ít nhất 1 bài / page / ngày**\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
+                content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng ít nhất 1 bài / page / ngày\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
               },
             },
             { tag: 'hr' },
@@ -2040,8 +2040,8 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
             const pageListContent = staff.warningPages
               .slice(0, 15)
               .map(p => {
-                const badge = p.postsToday === 0 ? '🔴 **[0 bài]**' : `🟡 **[${p.postsToday} bài]**`;
-                return `   • ${badge} **${p.pageName}** — Thiếu ${p.missingPosts} bài để đạt chỉ tiêu`;
+                const badge = p.postsToday === 0 ? '🔴 [0 bài]' : `🟡 [${p.postsToday} bài]`;
+                return `   • ${badge} ${p.pageName}`;
               })
               .join('\n');
 
@@ -2051,7 +2051,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
               tag: 'div',
               text: {
                 tag: 'lark_md',
-                content: `👤 **Nhân sự:** **${staff.staffName}**\n📊 **Tiến độ:** ${staff.completedPagesCount}/${staff.totalPages} Page đạt chuẩn\n\n📌 **Danh sách Page cần bổ sung bài:**\n${pageListContent}${extraCount}`,
+                content: `👤 **Nhân sự:** ${staff.staffName}\n${pageListContent}${extraCount}`,
               },
             });
 
