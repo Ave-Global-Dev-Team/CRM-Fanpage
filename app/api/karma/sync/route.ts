@@ -59,6 +59,45 @@ export interface KarmaSyncReportItem {
   topic?: string;
 }
 
+function normalizeDateString(dateStr: any): string {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  dateStr = String(dateStr).trim();
+  
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(dateStr)) {
+    const parts = dateStr.split(/[-/]/);
+    const y = parts[0];
+    const m = parts[1].padStart(2, '0');
+    const d = parts[2].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(dateStr)) {
+    const parts = dateStr.split(/[-/]/);
+    const d = parts[0].padStart(2, '0');
+    const m = parts[1].padStart(2, '0');
+    const y = parts[2];
+    return `${y}-${m}-${d}`;
+  }
+
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0];
+  }
+
+  return dateStr;
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -68,7 +107,8 @@ export async function POST(request: Request) {
       ? body
       : (body.reports || body.data || body.items || []);
       
-    const syncDate: string = body.date || body.reportDate || (rawReports[0]?.updatedDate || rawReports[0]?.date) || new Date().toISOString().split('T')[0];
+    const rawDate: string = body.date || body.reportDate || (rawReports[0]?.updatedDate || rawReports[0]?.date) || new Date().toISOString().split('T')[0];
+    const syncDate: string = normalizeDateString(rawDate);
 
     if (!Array.isArray(rawReports) || rawReports.length === 0) {
       return NextResponse.json({
@@ -125,7 +165,8 @@ export async function POST(request: Request) {
         if (!pageName) continue;
 
         const pageId = (item.pageId || item.page_id || item.profileId || item['Profile-ID'] || item.id || '').trim();
-        const reportDate = item.updatedDate || item.report_date || item.date || syncDate;
+        const itemDate = item.updatedDate || item.report_date || item.date;
+        const reportDate = itemDate ? normalizeDateString(itemDate) : syncDate;
         
         const views = parseInt(String(item.views || item.dailyViews || item.daily_views || item['Daily Views'] || item['Reach per day'] || 0), 10) || 0;
         const postCount = parseInt(String(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0), 10) || 0;
@@ -187,6 +228,19 @@ export async function POST(request: Request) {
 
     runSyncTransaction(rawReports);
 
+    // Log to webhook_logs
+    try {
+      db.prepare(`
+        INSERT INTO webhook_logs (sender_email, status, record_count, message, raw_payload)
+        VALUES (?, 'SUCCESS', ?, ?, ?)
+      `).run(
+        'Chrome Extension',
+        savedCount,
+        `Đồng bộ thành công ${savedCount} trang từ Extension (Ngày: ${syncDate})`,
+        JSON.stringify(rawReports.slice(0, 5))
+      );
+    } catch (e) {}
+
     console.log(`[Karma Sync] Đã lưu thành công ${savedCount} trang ngày ${syncDate} vào CRM!`);
 
     return NextResponse.json({
@@ -195,10 +249,30 @@ export async function POST(request: Request) {
       received: rawReports.length,
       synced: savedCount,
       date: syncDate,
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
     });
   } catch (error: any) {
     console.error('[Karma Sync Error]:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    try {
+      const { db } = require('../../../../../db.js');
+      db.prepare(`
+        INSERT INTO webhook_logs (sender_email, status, record_count, message, raw_payload)
+        VALUES (?, 'ERROR', 0, ?, ?)
+      `).run(
+        'Chrome Extension',
+        `Lỗi đồng bộ: ${error.message}`,
+        JSON.stringify(error).substring(0, 1000)
+      );
+    } catch (e) {}
+    return NextResponse.json({ success: false, error: error.message }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      }
+    });
   }
 }
 
@@ -208,7 +282,7 @@ export async function GET() {
     message: 'Karma Sync API endpoint is active and ready to accept POST requests with { date, reports } from Chrome Extension.',
     method: 'POST',
     samplePayload: {
-      date: '2026-08-20',
+      date: '2026-08-01',
       reports: [
         {
           pageName: 'Serene Nest',
@@ -219,6 +293,10 @@ export async function GET() {
           er: 0.05
         }
       ]
+    }
+  }, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
     }
   });
 }

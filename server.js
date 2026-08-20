@@ -1921,17 +1921,55 @@ app.post('/api/reset-data', (req, res) => {
   }
 });
 
+function normalizeDateString(dateStr) {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  dateStr = String(dateStr).trim();
+  
+  // Format: YYYY-MM-DD or YYYY-M-D or YYYY/MM/DD
+  if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(dateStr)) {
+    const parts = dateStr.split(/[-/]/);
+    const y = parts[0];
+    const m = parts[1].padStart(2, '0');
+    const d = parts[2].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // Format: DD/MM/YYYY or D/M/YYYY or DD-MM-YYYY
+  if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(dateStr)) {
+    const parts = dateStr.split(/[-/]/);
+    const d = parts[0].padStart(2, '0');
+    const m = parts[1].padStart(2, '0');
+    const y = parts[2];
+    return `${y}-${m}-${d}`;
+  }
+
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0];
+  }
+
+  return dateStr;
+}
+
 // ----------------------------------------------------
 // 8. CHROME EXTENSION KARMA SYNC ROUTE
 // ----------------------------------------------------
 app.all('/api/karma/sync', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method === 'GET') {
     return res.json({
       status: 'ok',
       message: 'Karma Sync API endpoint is active and ready to accept POST requests from Chrome Extension.',
       method: 'POST',
       samplePayload: {
-        date: '2026-08-20',
+        date: '2026-08-01',
         reports: [
           {
             pageName: 'Serene Nest',
@@ -1952,7 +1990,8 @@ app.all('/api/karma/sync', async (req, res) => {
       ? body
       : (body.reports || body.data || body.items || []);
       
-    const syncDate = body.date || body.reportDate || (rawReports[0]?.updatedDate || rawReports[0]?.date) || new Date().toISOString().split('T')[0];
+    const rawDate = body.date || body.reportDate || (rawReports[0]?.updatedDate || rawReports[0]?.date) || new Date().toISOString().split('T')[0];
+    const syncDate = normalizeDateString(rawDate);
 
     if (!Array.isArray(rawReports) || rawReports.length === 0) {
       return res.status(400).json({
@@ -2006,7 +2045,8 @@ app.all('/api/karma/sync', async (req, res) => {
         if (!pageName) continue;
 
         const pageId = (item.pageId || item.page_id || item.profileId || item['Profile-ID'] || item.id || '').trim();
-        const reportDate = item.updatedDate || item.report_date || item.date || syncDate;
+        const itemDate = item.updatedDate || item.report_date || item.date;
+        const reportDate = itemDate ? normalizeDateString(itemDate) : syncDate;
         
         const views = parseInt(item.views || item.dailyViews || item.daily_views || item['Daily Views'] || item['Reach per day'] || 0, 10) || 0;
         const postCount = parseInt(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0, 10) || 0;
@@ -2068,6 +2108,19 @@ app.all('/api/karma/sync', async (req, res) => {
 
     runSyncTransaction(rawReports);
 
+    // Log to webhook_logs
+    try {
+      db.prepare(`
+        INSERT INTO webhook_logs (sender_email, status, record_count, message, raw_payload)
+        VALUES (?, 'SUCCESS', ?, ?, ?)
+      `).run(
+        'Chrome Extension',
+        savedCount,
+        `Đồng bộ thành công ${savedCount} trang từ Extension (Ngày: ${syncDate})`,
+        JSON.stringify(rawReports.slice(0, 5))
+      );
+    } catch (e) {}
+
     console.log(`[Karma Sync] Đã lưu thành công ${savedCount} trang ngày ${syncDate} vào CRM!`);
 
     res.json({
@@ -2079,6 +2132,16 @@ app.all('/api/karma/sync', async (req, res) => {
     });
   } catch (error) {
     console.error('[Karma Sync Error]:', error);
+    try {
+      db.prepare(`
+        INSERT INTO webhook_logs (sender_email, status, record_count, message, raw_payload)
+        VALUES (?, 'ERROR', 0, ?, ?)
+      `).run(
+        'Chrome Extension',
+        `Lỗi đồng bộ: ${error.message}`,
+        JSON.stringify(req.body).substring(0, 1000)
+      );
+    } catch (e) {}
     res.status(500).json({ success: false, error: error.message });
   }
 });
