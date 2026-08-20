@@ -764,13 +764,20 @@
         <!-- Staff Performance Table & Master Assignment -->
         <div class="charts-row" id="staffChartsRow">
           <!-- Staff Leaderboard -->
-          <div class="glass-card span-12" id="staffLeaderboardCard" style="margin-bottom: 20px;">
-            <div class="card-header">
+          <div class="glass-card span-12" id="staffLeaderboardCard" style="margin-bottom: 24px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
               <div class="header-left">
-                <h3><i class="fa-solid fa-trophy" style="color: #fbbf24;"></i> Bảng Xếp Hạng & Hiệu Suất Theo Nhân Sự</h3>
-                <p>Tổng hợp Views, Tần suất đăng bài (Posts/day), Tỷ lệ hoàn thành báo cáo Fanpage theo từng nhân sự</p>
+                <h3 style="font-size: 18px; font-weight: 700; color: var(--text-color); display: flex; align-items: center; gap: 10px; margin: 0;">
+                  <span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);">
+                    <i class="fa-solid fa-trophy" style="font-size: 16px;"></i>
+                  </span>
+                  Bảng Xếp Hạng & Hiệu Suất Theo Nhân Sự
+                </h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 6px 0 0 0;">
+                  Tổng hợp Views, Tần suất đăng bài (Posts/day), Tỷ lệ hoàn thành báo cáo Fanpage theo từng nhân sự
+                </p>
               </div>
-              <button class="btn btn-secondary btn-sm" id="btnOpenAddStaffModal">
+              <button class="btn btn-secondary btn-sm" id="btnOpenAddStaffModal" style="display: inline-flex; align-items: center; gap: 6px;">
                 <i class="fa-solid fa-user-plus"></i> Thêm Nhân Sự
               </button>
             </div>
