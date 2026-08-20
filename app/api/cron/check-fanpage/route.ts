@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// 1. Khai báo các Type dữ liệu dựa theo UI CRM
+// 1. Khai báo các Type dữ liệu
 export interface StaffAssignment {
   pageId: string;
   pageName: string;
@@ -13,7 +13,7 @@ export interface StaffAssignment {
 export interface FanpageReport {
   pageId: string;
   pageName: string;
-  postsToday: number; // Số bài đăng trong ngày (hoặc chỉ số Number of posts)
+  postsToday: number; // Số bài đăng trong ngày
   views?: number;
   staffName?: string;
   updatedDate: string;
@@ -35,9 +35,17 @@ export interface StaffWarningReport {
   warningPages: PageWarning[];
 }
 
-// 2. Cấu hình hằng số
+// 2. Cấu hình hằng số & Danh sách 5 nhân sự được kiểm tra
 const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || 'https://open.larksuite.com/open-apis/bot/v2/hook/0fd6adf8-b62f-4f3f-bc66-b9cc2d5c7c0a';
-const DAILY_TARGET_POSTS = 2; // Target 2 post / ngày / page
+const DAILY_TARGET_POSTS = 2; // Mục tiêu trên 1 bài/ngày (Tối thiểu 2 bài / page / ngày)
+
+const TARGET_STAFF_MEMBERS = [
+  'Châu Thị Anh Thư',
+  'Bùi Thị Trúc Phương',
+  'Phạm Thị Thanh Nga',
+  'Lê Đình Vinh',
+  'Trương Thị Anh Nhung',
+];
 
 export async function GET(request: Request) {
   try {
@@ -51,31 +59,41 @@ export async function GET(request: Request) {
     const targetDate = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
 
     // ------------------------------------------------------------------
-    // BƯỚC 1: Lấy dữ liệu từ "Danh Sách Phân Bổ Nhân Sự + Fanpage"
+    // BƯỚC 1: Lấy phân bổ và lọc CHỈ 5 nhân sự được chỉ định
     // ------------------------------------------------------------------
-    const staffAssignments: StaffAssignment[] = await getStaffAssignmentsFromDB();
+    const allAssignments: StaffAssignment[] = await getStaffAssignmentsFromDB();
+    const staffAssignments = allAssignments.filter(a => 
+      a.status === 'Active' && 
+      TARGET_STAFF_MEMBERS.some(name => name.toLowerCase() === a.staffName.toLowerCase().trim())
+    );
 
     // ------------------------------------------------------------------
-    // BƯỚC 2: Lấy dữ liệu từ "Dashboard Báo Cáo Fanpage" hôm nay
+    // BƯỚC 2: Lấy dữ liệu báo cáo Fanpage hôm nay
     // ------------------------------------------------------------------
     const fanpageReports: FanpageReport[] = await getFanpageReportsTodayFromDB(targetDate);
 
     // ------------------------------------------------------------------
-    // BƯỚC 3: AI Agent Đối Chiếu Dữ Liệu & Gom Nhóm Theo Nhân Sự
+    // BƯỚC 3: Đối Chiếu Dữ Liệu & Gom Nhóm Theo 5 Nhân Sự
     // ------------------------------------------------------------------
     const staffReportMap = new Map<string, StaffWarningReport>();
 
-    // Chỉ lấy các phân bổ đang ở trạng thái 'Active'
-    const activeAssignments = staffAssignments.filter(a => a.status === 'Active');
+    // Khởi tạo sẵn cho cả 5 nhân sự để luôn theo dõi đủ
+    for (const staffName of TARGET_STAFF_MEMBERS) {
+      staffReportMap.set(staffName, {
+        staffName,
+        totalPages: 0,
+        completedPagesCount: 0,
+        warningPages: [],
+      });
+    }
 
-    for (const assignment of activeAssignments) {
+    for (const assignment of staffAssignments) {
       const { staffName, staffLarkId, pageId, pageName } = assignment;
-      const cleanStaffName = staffName || 'Chưa phân bổ';
+      const matchedKey = TARGET_STAFF_MEMBERS.find(n => n.toLowerCase() === staffName.toLowerCase().trim()) || staffName;
 
-      // Khởi tạo báo cáo cho nhân sự nếu chưa có
-      if (!staffReportMap.has(cleanStaffName)) {
-        staffReportMap.set(cleanStaffName, {
-          staffName: cleanStaffName,
+      if (!staffReportMap.has(matchedKey)) {
+        staffReportMap.set(matchedKey, {
+          staffName: matchedKey,
           staffLarkId,
           totalPages: 0,
           completedPagesCount: 0,
@@ -83,19 +101,18 @@ export async function GET(request: Request) {
         });
       }
 
-      const staffReport = staffReportMap.get(cleanStaffName)!;
+      const staffReport = staffReportMap.get(matchedKey)!;
       staffReport.totalPages += 1;
 
-      // Tìm báo cáo tương ứng của Page trong Dashboard Báo Cáo
+      // Tìm báo cáo tương ứng của Page
       const report = fanpageReports.find(
         r => (pageId && r.pageId === pageId) || r.pageName.toLowerCase().trim() === pageName.toLowerCase().trim()
       );
 
-      // Nếu không có báo cáo -> Coi như 0 bài đăng
+      // Nếu không có báo cáo -> Coi như 0 bài
       const postsToday = report ? Math.floor(report.postsToday) : 0;
 
       if (postsToday < DAILY_TARGET_POSTS) {
-        // Chưa đạt target -> Đưa vào danh sách cảnh báo
         staffReport.warningPages.push({
           pageId,
           pageName,
@@ -108,24 +125,27 @@ export async function GET(request: Request) {
       }
     }
 
-    // Lọc ra các nhân sự có ít nhất 1 Page chưa đạt KPI
+    // Lọc ra các nhân sự có Page chưa đạt chỉ tiêu (trên 1 bài/ngày)
     const staffWithWarnings = Array.from(staffReportMap.values()).filter(
-      s => s.warningPages.length > 0
+      s => s.totalPages > 0 && s.warningPages.length > 0
     );
 
     // ------------------------------------------------------------------
-    // BƯỚC 4: Nếu tất cả đều đạt KPI -> Báo thành công
+    // BƯỚC 4: Nếu tất cả đều đạt chỉ tiêu
     // ------------------------------------------------------------------
     if (staffWithWarnings.length === 0) {
+      if (LARK_WEBHOOK_URL) {
+        await sendLarkSuccessCard(targetDate);
+      }
       return NextResponse.json({
         success: true,
-        message: '🎉 Tất cả nhân sự và Fanpage đều đã hoàn thành đủ chỉ tiêu 2 bài/ngày!',
+        message: '🎉 Tất cả 5 nhân sự đều đã hoàn thành chỉ tiêu đăng bài (trên 1 bài/ngày)!',
         targetDate,
       });
     }
 
     // ------------------------------------------------------------------
-    // BƯỚC 5: Gửi Thông Báo Dạng Interactive Card Về Nhóm Lark
+    // BƯỚC 5: Gửi Thông Báo Interactive Card Về Nhóm Lark
     // ------------------------------------------------------------------
     if (LARK_WEBHOOK_URL) {
       await sendLarkGroupCard(staffWithWarnings, targetDate);
@@ -135,6 +155,7 @@ export async function GET(request: Request) {
       success: true,
       timestamp: new Date().toISOString(),
       targetDate,
+      targetStaffChecked: TARGET_STAFF_MEMBERS.length,
       warnedStaffCount: staffWithWarnings.length,
       data: staffWithWarnings,
     });
@@ -145,7 +166,7 @@ export async function GET(request: Request) {
 }
 
 // ============================================================================
-// HÀM TẠO CARD LARK INTERACTIVE VÀ GỬI VỀ NHÓM LARK
+// HÀM TẠO CARD LARK VÀ GỬI VỀ NHÓM LARK (17:00 HẰNG NGÀY)
 // ============================================================================
 async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate: string) {
   const cardElements: any[] = [
@@ -153,21 +174,17 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
       tag: 'div',
       text: {
         tag: 'lark_md',
-        content: `📅 **Ngày kiểm tra:** ${targetDate}\n🎯 **Chỉ tiêu:** ${DAILY_TARGET_POSTS} bài / page / ngày\n⚠️ Phát hiện **${staffReports.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng.`,
+        content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **trên 1 bài/ngày** (Tối thiểu 2 bài / page)\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffReports.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
       },
     },
     { tag: 'hr' },
   ];
 
-  // Xây dựng khối hiển thị cho từng nhân sự
   staffReports.forEach((staff, index) => {
-    const mentionText = staff.staffLarkId ? `<at id="${staff.staffLarkId}"></at>` : '';
-    
-    // Tạo danh sách các Page bị thiếu bài của nhân sự này
     const pageListContent = staff.warningPages
       .map(p => {
-        const badge = p.postsToday === 0 ? '🔴 **[0/2 bài]**' : '🟡 **[1/2 bài]**';
-        return `   • ${badge} **${p.pageName}** *(ID: ${p.pageId || 'N/A'})* — Thiếu ${p.missingPosts} bài`;
+        const badge = p.postsToday === 0 ? '🔴 **[0 bài]**' : `🟡 **[${p.postsToday} bài]**`;
+        return `   • ${badge} **${p.pageName}** — Thiếu ${p.missingPosts} bài để đạt chỉ tiêu`;
       })
       .join('\n');
 
@@ -175,7 +192,7 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
       tag: 'div',
       text: {
         tag: 'lark_md',
-        content: `👤 **Nhân sự phụ trách:** **${staff.staffName}** ${mentionText}\n📊 **Tiến độ:** ${staff.completedPagesCount}/${staff.totalPages} Page đạt chỉ tiêu\n\n📌 **Danh sách Page chưa đủ bài:**\n${pageListContent}`,
+        content: `👤 **Nhân sự:** **${staff.staffName}**\n📊 **Tiến độ:** ${staff.completedPagesCount}/${staff.totalPages} Page đạt chuẩn\n\n📌 **Danh sách Page cần bổ sung bài:**\n${pageListContent}`,
       },
     });
 
@@ -184,7 +201,7 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
     }
   });
 
-  // Khối Nút bấm chuyển sang CRM
+  // Nút bấm chuyển sang CRM
   cardElements.push(
     { tag: 'hr' },
     {
@@ -192,8 +209,8 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
       actions: [
         {
           tag: 'button',
-          text: { tag: 'plain_text', content: '🔗 Mở CRM Kiểm Tra Ngay' },
-          type: "primary",
+          text: { tag: 'plain_text', content: '🔗 Mở CRM Kiểm Tra & Nạp Báo Cáo' },
+          type: 'primary',
           url: 'https://crm-fanpage.vercel.app/',
         },
       ],
@@ -206,7 +223,7 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
       header: {
         title: {
           tag: 'plain_text',
-          content: '🚨 CẢNH BÁO KPI FANPAGE: CHƯA ĐẠT 2 POST/NGÀY',
+          content: '🚨 CẢNH BÁO 17:00: FANPAGE CHƯA ĐẠT CHỈ TIÊU BÀI ĐĂNG',
         },
         template: 'red',
       },
@@ -214,25 +231,48 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
     },
   };
 
-  const res = await fetch(LARK_WEBHOOK_URL, {
+  await fetch(LARK_WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error('Lỗi khi gửi webhook Lark:', errText);
-  }
+async function sendLarkSuccessCard(targetDate: string) {
+  const payload = {
+    msg_type: 'interactive',
+    card: {
+      header: {
+        title: {
+          tag: 'plain_text',
+          content: '🎉 BÁO CÁO 17:00: TẤT CẢ FANPAGE ĐÃ ĐẠT CHỈ TIÊU!',
+        },
+        template: 'green',
+      },
+      elements: [
+        {
+          tag: 'div',
+          text: {
+            tag: 'lark_md',
+            content: `📅 **Ngày:** ${targetDate}\n👏 Tất cả 5 nhân sự được theo dõi (**Châu Thị Anh Thư, Bùi Thị Trúc Phương, Phạm Thị Thanh Nga, Lê Đình Vinh, Trương Thị Anh Nhung**) đều đã hoàn thành xuất sắc chỉ tiêu đăng bài hôm nay!`,
+          },
+        },
+      ],
+    },
+  };
+
+  await fetch(LARK_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 // ============================================================================
 // HÀM FETCH DỮ LIỆU TỪ DATABASE CRM
 // ============================================================================
-
 async function getStaffAssignmentsFromDB(): Promise<StaffAssignment[]> {
   try {
-    // Dynamic import better-sqlite3 or internal query if available
     const { db } = require('../../../../../db.js');
     const rows = db.prepare(`
       SELECT 
@@ -253,15 +293,7 @@ async function getStaffAssignmentsFromDB(): Promise<StaffAssignment[]> {
       topic: r.topic,
     }));
   } catch (err) {
-    // Fallback if sqlite module cannot load in edge runtime
-    return [
-      { pageId: '101867349714421', pageName: 'Vibrant Vibe Fitness', staffName: 'Nguyễn Anh Tú', status: 'Active' },
-      { pageId: '109805142163303', pageName: 'Power Pulse Fitness', staffName: 'Nguyễn Anh Tú', status: 'Active' },
-      { pageId: '111099872034128', pageName: 'Yoga Wisdom', staffName: 'Nguyễn Anh Tú', status: 'Active' },
-      { pageId: '104945032657502', pageName: 'Natural Cleansing', staffName: 'Nguyễn Anh Tú', status: 'Active' },
-      { pageId: '102186739610422', pageName: 'Fit Fusion Zone', staffName: 'Trương Thị Anh Nhung', status: 'Active' },
-      { pageId: '268031806396310', pageName: 'Utopia Uplift Universe', staffName: 'Phạm Thị Thanh Nga', status: 'Active' },
-    ];
+    return [];
   }
 }
 

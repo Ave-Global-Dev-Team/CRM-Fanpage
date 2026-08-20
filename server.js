@@ -1934,7 +1934,15 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
     const DAILY_TARGET_POSTS = parseInt(req.query.target || req.body?.target || '2', 10);
     const LARK_WEBHOOK_URL = req.query.webhook || req.body?.webhook || process.env.LARK_WEBHOOK_URL || (db.prepare("SELECT value FROM app_settings WHERE key = 'lark_webhook_url'").get()?.value) || '';
 
-    // 1. Lấy dữ liệu từ master_pages
+    const TARGET_STAFF_MEMBERS = [
+      'Châu Thị Anh Thư',
+      'Bùi Thị Trúc Phương',
+      'Phạm Thị Thanh Nga',
+      'Lê Đình Vinh',
+      'Trương Thị Anh Nhung',
+    ];
+
+    // 1. Lấy dữ liệu từ master_pages (lọc đúng 5 nhân sự)
     const staffAssignments = db.prepare(`
       SELECT 
         COALESCE(page_id, '') as pageId,
@@ -1943,7 +1951,8 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
         COALESCE(status, 'Active') as status,
         topic
       FROM master_pages
-      WHERE status = 'Active' OR status IS NULL
+      WHERE (status = 'Active' OR status IS NULL)
+        AND staff_name IN ('Châu Thị Anh Thư', 'Bùi Thị Trúc Phương', 'Phạm Thị Thanh Nga', 'Lê Đình Vinh', 'Trương Thị Anh Nhung')
     `).all();
 
     // 2. Lấy dữ liệu báo cáo hôm nay
@@ -1959,24 +1968,31 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
       WHERE d.report_date = ?
     `).all(targetDate);
 
-    // 3. Gom nhóm theo nhân sự & đối chiếu
+    // 3. Gom nhóm theo 5 nhân sự & đối chiếu
     const staffReportMap = new Map();
-    const activeAssignments = staffAssignments.filter(a => a.status === 'Active');
+    for (const name of TARGET_STAFF_MEMBERS) {
+      staffReportMap.set(name, {
+        staffName: name,
+        totalPages: 0,
+        completedPagesCount: 0,
+        warningPages: [],
+      });
+    }
 
-    for (const assignment of activeAssignments) {
+    for (const assignment of staffAssignments) {
       const { staffName, pageId, pageName } = assignment;
-      const cleanStaffName = staffName || 'Chưa phân bổ';
+      const matchedKey = TARGET_STAFF_MEMBERS.find(n => n.toLowerCase() === staffName.toLowerCase().trim()) || staffName;
 
-      if (!staffReportMap.has(cleanStaffName)) {
-        staffReportMap.set(cleanStaffName, {
-          staffName: cleanStaffName,
+      if (!staffReportMap.has(matchedKey)) {
+        staffReportMap.set(matchedKey, {
+          staffName: matchedKey,
           totalPages: 0,
           completedPagesCount: 0,
           warningPages: [],
         });
       }
 
-      const staffReport = staffReportMap.get(cleanStaffName);
+      const staffReport = staffReportMap.get(matchedKey);
       staffReport.totalPages += 1;
 
       const report = fanpageReports.find(
@@ -1999,77 +2015,102 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
     }
 
     const staffWithWarnings = Array.from(staffReportMap.values()).filter(
-      s => s.warningPages.length > 0
+      s => s.totalPages > 0 && s.warningPages.length > 0
     );
 
     let larkSent = false;
     let larkError = null;
 
-    if (LARK_WEBHOOK_URL && staffWithWarnings.length > 0) {
+    if (LARK_WEBHOOK_URL) {
       try {
-        const cardElements = [
-          {
-            tag: 'div',
-            text: {
-              tag: 'lark_md',
-              content: `📅 **Ngày kiểm tra:** ${targetDate}\n🎯 **Chỉ tiêu:** ${DAILY_TARGET_POSTS} bài / page / ngày\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng.`,
+        let payload;
+        if (staffWithWarnings.length > 0) {
+          const cardElements = [
+            {
+              tag: 'div',
+              text: {
+                tag: 'lark_md',
+                content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **trên 1 bài/ngày** (Tối thiểu 2 bài / page)\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
+              },
             },
-          },
-          { tag: 'hr' },
-        ];
+            { tag: 'hr' },
+          ];
 
-        staffWithWarnings.forEach((staff, index) => {
-          const pageListContent = staff.warningPages
-            .slice(0, 15) // Limit top 15 to avoid exceeding card limit
-            .map(p => {
-              const badge = p.postsToday === 0 ? '🔴 **[0/2 bài]**' : '🟡 **[1/2 bài]**';
-              return `   • ${badge} **${p.pageName}** *(ID: ${p.pageId || 'N/A'})* — Thiếu ${p.missingPosts} bài`;
-            })
-            .join('\n');
+          staffWithWarnings.forEach((staff, index) => {
+            const pageListContent = staff.warningPages
+              .slice(0, 15)
+              .map(p => {
+                const badge = p.postsToday === 0 ? '🔴 **[0 bài]**' : `🟡 **[${p.postsToday} bài]**`;
+                return `   • ${badge} **${p.pageName}** — Thiếu ${p.missingPosts} bài để đạt chỉ tiêu`;
+              })
+              .join('\n');
 
-          const extraCount = staff.warningPages.length > 15 ? `\n   *(và ${staff.warningPages.length - 15} page khác...)*` : '';
+            const extraCount = staff.warningPages.length > 15 ? `\n   *(và ${staff.warningPages.length - 15} page khác...)*` : '';
 
-          cardElements.push({
-            tag: 'div',
-            text: {
-              tag: 'lark_md',
-              content: `👤 **Nhân sự phụ trách:** **${staff.staffName}**\n📊 **Tiến độ:** ${staff.completedPagesCount}/${staff.totalPages} Page đạt chỉ tiêu\n\n📌 **Danh sách Page chưa đủ bài:**\n${pageListContent}${extraCount}`,
-            },
+            cardElements.push({
+              tag: 'div',
+              text: {
+                tag: 'lark_md',
+                content: `👤 **Nhân sự:** **${staff.staffName}**\n📊 **Tiến độ:** ${staff.completedPagesCount}/${staff.totalPages} Page đạt chuẩn\n\n📌 **Danh sách Page cần bổ sung bài:**\n${pageListContent}${extraCount}`,
+              },
+            });
+
+            if (index < staffWithWarnings.length - 1) {
+              cardElements.push({ tag: 'hr' });
+            }
           });
 
-          if (index < staffWithWarnings.length - 1) {
-            cardElements.push({ tag: 'hr' });
-          }
-        });
+          cardElements.push(
+            { tag: 'hr' },
+            {
+              tag: 'action',
+              actions: [
+                {
+                  tag: 'button',
+                  text: { tag: 'plain_text', content: '🔗 Mở CRM Kiểm Tra & Nạp Báo Cáo' },
+                  type: 'primary',
+                  url: 'https://crm-fanpage.vercel.app/',
+                },
+              ],
+            }
+          );
 
-        cardElements.push(
-          { tag: 'hr' },
-          {
-            tag: 'action',
-            actions: [
-              {
-                tag: 'button',
-                text: { tag: 'plain_text', content: '🔗 Mở CRM Kiểm Tra Ngay' },
-                type: 'primary',
-                url: 'https://crm-fanpage.vercel.app/',
+          payload = {
+            msg_type: 'interactive',
+            card: {
+              header: {
+                title: {
+                  tag: 'plain_text',
+                  content: '🚨 CẢNH BÁO 17:00: FANPAGE CHƯA ĐẠT CHỈ TIÊU BÀI ĐĂNG',
+                },
+                template: 'red',
               },
-            ],
-          }
-        );
-
-        const payload = {
-          msg_type: 'interactive',
-          card: {
-            header: {
-              title: {
-                tag: 'plain_text',
-                content: '🚨 CẢNH BÁO KPI FANPAGE: CHƯA ĐẠT 2 POST/NGÀY',
-              },
-              template: 'red',
+              elements: cardElements,
             },
-            elements: cardElements,
-          },
-        };
+          };
+        } else {
+          payload = {
+            msg_type: 'interactive',
+            card: {
+              header: {
+                title: {
+                  tag: 'plain_text',
+                  content: '🎉 BÁO CÁO 17:00: TẤT CẢ FANPAGE ĐÃ ĐẠT CHỈ TIÊU!',
+                },
+                template: 'green',
+              },
+              elements: [
+                {
+                  tag: 'div',
+                  text: {
+                    tag: 'lark_md',
+                    content: `📅 **Ngày:** ${targetDate}\n👏 Tất cả 5 nhân sự được theo dõi đều đã hoàn thành xuất sắc chỉ tiêu đăng bài hôm nay (> 1 bài/page)!`,
+                  },
+                },
+              ],
+            },
+          };
+        }
 
         const larkRes = await fetch(LARK_WEBHOOK_URL, {
           method: 'POST',
@@ -2091,7 +2132,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
       timestamp: new Date().toISOString(),
       targetDate,
       dailyTargetPosts: DAILY_TARGET_POSTS,
-      totalActivePagesChecked: activeAssignments.length,
+      totalActivePagesChecked: staffAssignments.length,
       warnedStaffCount: staffWithWarnings.length,
       larkWebhookConfigured: !!LARK_WEBHOOK_URL,
       larkSent,
