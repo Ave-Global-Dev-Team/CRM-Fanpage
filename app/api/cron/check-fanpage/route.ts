@@ -37,7 +37,7 @@ export interface StaffWarningReport {
 
 // 2. Cấu hình hằng số & Danh sách 5 nhân sự được kiểm tra
 const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || 'https://open.larksuite.com/open-apis/bot/v2/hook/0fd6adf8-b62f-4f3f-bc66-b9cc2d5c7c0a';
-const DAILY_TARGET_POSTS = 2; // Mục tiêu trên 1 bài/ngày (Tối thiểu 2 bài / page / ngày)
+const DAILY_TARGET_POSTS = 1; // Mục tiêu: Ít nhất 1 bài / page / ngày
 
 const TARGET_STAFF_MEMBERS = [
   'Châu Thị Anh Thư',
@@ -174,7 +174,7 @@ async function sendLarkGroupCard(staffReports: StaffWarningReport[], targetDate:
       tag: 'div',
       text: {
         tag: 'lark_md',
-        content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **trên 1 bài/ngày** (Tối thiểu 2 bài / page)\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffReports.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
+        content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **ít nhất 1 bài / page / ngày**\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffReports.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
       },
     },
     { tag: 'hr' },

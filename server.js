@@ -1931,7 +1931,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
     }
 
     const targetDate = req.query.date || req.body?.date || (db.prepare('SELECT MAX(report_date) as maxDate FROM daily_metrics').get()?.maxDate) || new Date().toISOString().split('T')[0];
-    const DAILY_TARGET_POSTS = parseInt(req.query.target || req.body?.target || '2', 10);
+    const DAILY_TARGET_POSTS = parseInt(req.query.target || req.body?.target || '1', 10);
     const LARK_WEBHOOK_URL = req.query.webhook || req.body?.webhook || process.env.LARK_WEBHOOK_URL || (db.prepare("SELECT value FROM app_settings WHERE key = 'lark_webhook_url'").get()?.value) || '';
 
     const TARGET_STAFF_MEMBERS = [
@@ -2030,7 +2030,7 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
               tag: 'div',
               text: {
                 tag: 'lark_md',
-                content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **trên 1 bài/ngày** (Tối thiểu 2 bài / page)\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
+                content: `📅 **Thời gian kiểm tra:** 17:00 ngày ${targetDate}\n🎯 **Chỉ tiêu:** Đăng **ít nhất 1 bài / page / ngày**\n👥 **Đối tượng kiểm tra:** 5 nhân sự phụ trách fanpage\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng hôm nay.`,
               },
             },
             { tag: 'hr' },
