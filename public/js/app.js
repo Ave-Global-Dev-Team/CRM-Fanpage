@@ -17,6 +17,9 @@ let currentUser = JSON.parse(localStorage.getItem('karma_crm_user')) || {
   department: 'Ban Giám Đốc'
 };
 
+let selectedStaffFilters = null; // null means all selected, or a Set of staff names
+let allDistinctStaffNames = [];
+
 // DOM Elements
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
@@ -24,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuthAndUserSwitcher();
   initEventListeners();
   initDateRangePicker();
+  initStaffMultiSelect();
   loadAllData();
   
   // Auto refresh every 60s
@@ -1363,6 +1367,7 @@ async function loadPagesTable() {
     if (!json.success) return;
 
     allPagesData = json.data;
+    populateStaffMultiSelect();
     
     // Populate filter dropdown in History Tab
     const filterSelect = document.getElementById('filterHistoryPage');
@@ -1409,9 +1414,15 @@ function renderSortedPagesTable() {
   if (!isAdminUser && currentUser && currentUser.name) {
     sortedList = sortedList.filter(p => (p.staff_name || '') === currentUser.name);
   } else {
-    const staffFilter = document.getElementById('filterPagesByStaff')?.value || 'all';
-    if (staffFilter !== 'all') {
-      sortedList = sortedList.filter(p => (p.staff_name || 'Chưa phân bổ') === staffFilter);
+    if (selectedStaffFilters !== null) {
+      if (selectedStaffFilters.size === 0) {
+        sortedList = []; // Nothing checked -> empty
+      } else {
+        sortedList = sortedList.filter(p => {
+          const sName = (p.staff_name && p.staff_name.trim()) ? p.staff_name.trim() : 'Chưa phân bổ';
+          return selectedStaffFilters.has(sName);
+        });
+      }
     }
   }
 
@@ -2206,6 +2217,8 @@ async function loadStaffData() {
       });
       staffFilterSelect.value = currentVal || 'all';
     }
+
+    populateStaffMultiSelect();
 
     // Render Staff Table
     const tbody = document.getElementById('staffTableBody');
@@ -3629,3 +3642,204 @@ function exportTopicsToCSV() {
   URL.revokeObjectURL(url);
   showToast('Đã xuất file CSV Phân Tích Chủ Đề thành công!');
 }
+
+// ----------------------------------------------------
+// 10. MULTI-SELECT CHECKBOX DROPDOWN (STAFF FILTER)
+// ----------------------------------------------------
+function initStaffMultiSelect() {
+  const container = document.getElementById('staffMultiSelectContainer');
+  const btn = document.getElementById('staffMultiSelectBtn');
+  const dropdown = document.getElementById('staffMultiSelectDropdown');
+  const selectAllCb = document.getElementById('staffSelectAllCheckbox');
+  const deselectAllBtn = document.getElementById('staffDeselectAllBtn');
+  const searchInput = document.getElementById('staffSearchFilterInput');
+
+  if (!btn || !dropdown) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('show');
+    if (dropdown.classList.contains('show') && searchInput) {
+      searchInput.value = '';
+      const items = document.querySelectorAll('.staff-select-item-row');
+      items.forEach(row => row.style.display = 'flex');
+      searchInput.focus();
+    }
+  });
+
+  // Close when click outside
+  document.addEventListener('click', (e) => {
+    if (container && !container.contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+
+  // Select All Checkbox toggle
+  selectAllCb?.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    const itemCbs = document.querySelectorAll('.staff-item-checkbox');
+    itemCbs.forEach(cb => cb.checked = isChecked);
+    
+    if (isChecked) {
+      selectedStaffFilters = null; // all
+      if (deselectAllBtn) deselectAllBtn.innerText = 'Bỏ chọn hết';
+    } else {
+      selectedStaffFilters = new Set(); // none
+      if (deselectAllBtn) deselectAllBtn.innerText = 'Chọn tất cả';
+    }
+    updateStaffMultiSelectLabel();
+    renderSortedPagesTable();
+  });
+
+  // Deselect All / Select All Button
+  deselectAllBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const itemCbs = document.querySelectorAll('.staff-item-checkbox');
+    const anyChecked = Array.from(itemCbs).some(cb => cb.checked);
+    const newChecked = !anyChecked; // toggle all or none
+    
+    itemCbs.forEach(cb => cb.checked = newChecked);
+    if (selectAllCb) selectAllCb.checked = newChecked;
+    
+    if (newChecked) {
+      selectedStaffFilters = null;
+      deselectAllBtn.innerText = 'Bỏ chọn hết';
+    } else {
+      selectedStaffFilters = new Set();
+      deselectAllBtn.innerText = 'Chọn tất cả';
+    }
+    updateStaffMultiSelectLabel();
+    renderSortedPagesTable();
+  });
+
+  // Search input in dropdown
+  searchInput?.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    const items = document.querySelectorAll('.staff-select-item-row');
+    items.forEach(row => {
+      const name = row.getAttribute('data-staff-name')?.toLowerCase() || '';
+      row.style.display = name.includes(query) ? 'flex' : 'none';
+    });
+  });
+}
+
+function populateStaffMultiSelect() {
+  const listContainer = document.getElementById('staffMultiSelectList');
+  if (!listContainer) return;
+
+  // Count pages for each staff
+  const staffCounts = {};
+  if (Array.isArray(allPagesData)) {
+    allPagesData.forEach(p => {
+      const s = (p.staff_name && p.staff_name.trim()) ? p.staff_name.trim() : 'Chưa phân bổ';
+      staffCounts[s] = (staffCounts[s] || 0) + 1;
+    });
+  }
+
+  const staffNameSet = new Set(allStaffList.map(s => s.name.trim()).filter(Boolean));
+  staffNameSet.add('Chưa phân bổ');
+  
+  // Also collect any staff names present in allPagesData
+  if (Array.isArray(allPagesData)) {
+    allPagesData.forEach(p => {
+      const s = (p.staff_name && p.staff_name.trim()) ? p.staff_name.trim() : 'Chưa phân bổ';
+      staffNameSet.add(s);
+    });
+  }
+
+  allDistinctStaffNames = Array.from(staffNameSet).sort((a, b) => {
+    if (a === 'Chưa phân bổ') return 1;
+    if (b === 'Chưa phân bổ') return -1;
+    return a.localeCompare(b, 'vi');
+  });
+
+  listContainer.innerHTML = '';
+
+  allDistinctStaffNames.forEach(name => {
+    const count = staffCounts[name] || 0;
+    const isChecked = selectedStaffFilters === null || selectedStaffFilters.has(name);
+    
+    const label = document.createElement('label');
+    label.className = 'multi-select-item staff-select-item-row';
+    label.setAttribute('data-staff-name', name);
+    
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'staff-item-checkbox';
+    cb.value = name;
+    cb.checked = isChecked;
+    
+    cb.addEventListener('change', () => {
+      onStaffItemCheckboxChange();
+    });
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'staff-item-name';
+    nameSpan.innerText = name === 'Chưa phân bổ' ? 'Chưa phân bổ (Chưa có nhân sự)' : name;
+    if (name === 'Chưa phân bổ') {
+      nameSpan.style.color = '#f59e0b';
+      nameSpan.style.fontWeight = '600';
+    }
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'staff-count-badge';
+    countBadge.innerText = `${count} page`;
+
+    label.appendChild(cb);
+    label.appendChild(nameSpan);
+    label.appendChild(countBadge);
+    listContainer.appendChild(label);
+  });
+
+  updateStaffMultiSelectLabel();
+}
+
+function onStaffItemCheckboxChange() {
+  const itemCbs = document.querySelectorAll('.staff-item-checkbox');
+  const checkedNames = [];
+  itemCbs.forEach(cb => {
+    if (cb.checked) checkedNames.push(cb.value);
+  });
+
+  const selectAllCb = document.getElementById('staffSelectAllCheckbox');
+  const deselectAllBtn = document.getElementById('staffDeselectAllBtn');
+
+  if (checkedNames.length === itemCbs.length) {
+    selectedStaffFilters = null; // All checked
+    if (selectAllCb) selectAllCb.checked = true;
+    if (deselectAllBtn) deselectAllBtn.innerText = 'Bỏ chọn hết';
+  } else {
+    selectedStaffFilters = new Set(checkedNames);
+    if (selectAllCb) selectAllCb.checked = false;
+    if (deselectAllBtn) deselectAllBtn.innerText = checkedNames.length === 0 ? 'Chọn tất cả' : 'Bỏ chọn hết';
+  }
+
+  updateStaffMultiSelectLabel();
+  renderSortedPagesTable();
+}
+
+function updateStaffMultiSelectLabel() {
+  const labelEl = document.getElementById('staffMultiSelectLabel');
+  if (!labelEl) return;
+
+  const itemCbs = document.querySelectorAll('.staff-item-checkbox');
+  const total = itemCbs.length;
+  const checked = Array.from(itemCbs).filter(cb => cb.checked);
+
+  if (total === 0) {
+    labelEl.innerText = 'Tất cả nhân sự';
+  } else if (checked.length === total) {
+    labelEl.innerText = `Tất cả nhân sự (${total})`;
+  } else if (checked.length === 0) {
+    labelEl.innerText = 'Chưa chọn nhân sự nào (0)';
+    labelEl.style.color = '#f87171';
+    return;
+  } else if (checked.length === 1) {
+    const singleName = checked[0].value;
+    labelEl.innerText = singleName === 'Chưa phân bổ' ? 'Chưa phân bổ' : singleName;
+  } else {
+    labelEl.innerText = `Đã chọn ${checked.length}/${total} nhân sự`;
+  }
+  labelEl.style.color = '';
+}
+
