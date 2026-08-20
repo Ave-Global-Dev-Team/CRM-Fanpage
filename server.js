@@ -1355,14 +1355,21 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     // Check if the uploaded file is a Posts Report / Top Content report
     const sampleRow = rows[0] || {};
     const sampleKeys = Object.keys(sampleRow).map(k => k.toLowerCase().replace(/[\s_\-\.\/\(\)\[\]\%]/g, ''));
-    const isPostsReport = sampleKeys.some(k => 
+
+    const isPageReport = sampleKeys.some(k => 
+      k.includes('dailyviews') || 
+      k.includes('reachperday') || 
+      k.includes('pageperformanceindex') || 
+      k.includes('postsperday') || 
+      (k.includes('numberofposts') && !sampleKeys.includes('message'))
+    );
+
+    const isPostsReport = !isPageReport && sampleKeys.some(k => 
       k.includes('message') || 
       k.includes('caption') || 
       k.includes('posttext') || 
-      k.includes('text') || 
       k.includes('posturl') || 
       k.includes('postlink') || 
-      k.includes('postinteractionrate') || 
       k.includes('negativesentiment') || 
       k.includes('interactionsperimpression')
     );
