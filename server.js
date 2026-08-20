@@ -355,11 +355,15 @@ app.post('/api/pages/assign', (req, res) => {
     // Also update or insert in master_pages
     const page = db.prepare('SELECT page_id, topic FROM pages WHERE name = ?').get(page_name);
     if (staff !== 'Chưa phân bổ') {
-      db.prepare(`
-        INSERT INTO master_pages (page_name, page_id, staff_name, topic)
-        VALUES (?, ?, ?, ?)
-        ON CONFLICT(page_name) DO UPDATE SET staff_name = excluded.staff_name
-      `).run(page_name, page?.page_id || '', staff, page?.topic || 'Chưa phân loại');
+      const existingMaster = db.prepare('SELECT id FROM master_pages WHERE page_name = ?').get(page_name);
+      if (existingMaster) {
+        db.prepare('UPDATE master_pages SET staff_name = ? WHERE id = ?').run(staff, existingMaster.id);
+      } else {
+        db.prepare(`
+          INSERT INTO master_pages (page_name, page_id, staff_name, topic)
+          VALUES (?, ?, ?, ?)
+        `).run(page_name, page?.page_id || '', staff, page?.topic || 'Chưa phân loại');
+      }
 
       // Auto ensure staff exists
       db.prepare('INSERT OR IGNORE INTO staff (name) VALUES (?)').run(staff);
@@ -1176,12 +1180,23 @@ app.post('/api/webhook/fanpagekarma', authenticateApiKey, (req, res) => {
       return res.status(400).json({ success: false, error: 'Không tìm thấy mảng records dữ liệu trong payload.' });
     }
 
-    const insertOrUpdatePage = db.prepare(`
-      INSERT INTO pages (name, category, page_id, page_url) 
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(name) DO UPDATE SET 
-        page_id = CASE WHEN excluded.page_id != '' THEN excluded.page_id ELSE pages.page_id END,
-        page_url = CASE WHEN excluded.page_url != '' THEN excluded.page_url ELSE pages.page_url END
+    const findExistingPage = db.prepare(`
+      SELECT id FROM pages 
+      WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR name = ?
+      LIMIT 1
+    `);
+
+    const updateExistingPage = db.prepare(`
+      UPDATE pages SET 
+        page_id = CASE WHEN ? != '' THEN ? ELSE page_id END,
+        page_url = CASE WHEN ? != '' THEN ? ELSE page_url END,
+        staff_name = CASE WHEN ? != 'Chưa phân bổ' THEN ? ELSE staff_name END
+      WHERE id = ?
+    `);
+
+    const insertNewPage = db.prepare(`
+      INSERT INTO pages (name, category, page_id, page_url, staff_name) 
+      VALUES (?, ?, ?, ?, ?)
     `);
 
     const insertMetric = db.prepare(`
@@ -1203,8 +1218,12 @@ app.post('/api/webhook/fanpagekarma', authenticateApiKey, (req, res) => {
         const matchedStaff = item.staff_name || findStaffForPage(pageName, pageId) || 'Chưa phân bổ';
 
         // Auto create or update page
-        insertOrUpdatePage.run(pageName, item.category || 'Của tôi', pageId, pageUrl);
-        db.prepare('UPDATE pages SET staff_name = ? WHERE name = ?').run(matchedStaff, pageName);
+        const existing = findExistingPage.get(pageId, pageName);
+        if (existing) {
+          updateExistingPage.run(pageId, pageId, pageUrl, pageUrl, matchedStaff, matchedStaff, existing.id);
+        } else {
+          insertNewPage.run(pageName, item.category || 'Của tôi', pageId, pageUrl, matchedStaff);
+        }
 
         const recDate = item.report_date || item.date || reportDate;
         const views = parseInt(item.views || item.view_count || item.video_views || 0, 10) || 0;
@@ -1570,15 +1589,25 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       return res.status(400).json({ success: false, error: 'Không nhận diện được cột dữ liệu Fanpage trong file.' });
     }
 
-    // Insert into DB
-    const insertOrUpdatePage = db.prepare(`
+    // Insert into DB without fragile ON CONFLICT clauses
+    const findExistingPage = db.prepare(`
+      SELECT id FROM pages 
+      WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR name = ?
+      LIMIT 1
+    `);
+
+    const updateExistingPage = db.prepare(`
+      UPDATE pages SET 
+        page_id = CASE WHEN ? != '' THEN ? ELSE page_id END,
+        page_url = CASE WHEN ? != '' THEN ? ELSE page_url END,
+        avatar_url = CASE WHEN ? != '' THEN ? ELSE avatar_url END,
+        staff_name = CASE WHEN ? != 'Chưa phân bổ' THEN ? ELSE staff_name END
+      WHERE id = ?
+    `);
+
+    const insertNewPage = db.prepare(`
       INSERT INTO pages (name, category, page_id, page_url, avatar_url, staff_name) 
       VALUES (?, 'Của tôi', ?, ?, ?, ?)
-      ON CONFLICT(name) DO UPDATE SET 
-        page_id = CASE WHEN excluded.page_id != '' THEN excluded.page_id ELSE pages.page_id END,
-        page_url = CASE WHEN excluded.page_url != '' THEN excluded.page_url ELSE pages.page_url END,
-        avatar_url = CASE WHEN excluded.avatar_url != '' THEN excluded.avatar_url ELSE pages.avatar_url END,
-        staff_name = CASE WHEN excluded.staff_name != 'Chưa phân bổ' THEN excluded.staff_name ELSE pages.staff_name END
     `);
 
     const insertMetric = db.prepare(`
@@ -1593,7 +1622,18 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         // Auto cross reference staff
         const matchedStaff = findStaffForPage(item.page_name, item.page_id) || 'Chưa phân bổ';
 
-        insertOrUpdatePage.run(item.page_name, item.page_id || '', item.page_url || '', item.avatar_url || '', matchedStaff);
+        const existing = findExistingPage.get(item.page_id || '', item.page_name);
+        if (existing) {
+          updateExistingPage.run(
+            item.page_id || '', item.page_id || '',
+            item.page_url || '', item.page_url || '',
+            item.avatar_url || '', item.avatar_url || '',
+            matchedStaff, matchedStaff,
+            existing.id
+          );
+        } else {
+          insertNewPage.run(item.page_name, item.page_id || '', item.page_url || '', item.avatar_url || '', matchedStaff);
+        }
         insertMetric.run(
           item.page_name,
           item.report_date,
