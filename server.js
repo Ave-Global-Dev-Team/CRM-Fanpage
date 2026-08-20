@@ -1921,6 +1921,79 @@ app.post('/api/reset-data', (req, res) => {
   }
 });
 
+// ----------------------------------------------------
+// 7.5. FACEBOOK PAGE SCANNER & IMPORT ROUTES
+// ----------------------------------------------------
+app.get('/connect-facebook', (req, res) => {
+  try {
+    const fs = require('fs');
+    const html = fs.readFileSync(path.join(__dirname, 'public', 'connect-facebook.html'), 'utf8');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Lỗi tải trang kết nối: ' + err.message);
+  }
+});
+
+app.post('/api/facebook/import-pages', (req, res) => {
+  try {
+    const { staffName, department, topic, pages } = req.body;
+    if (!staffName || !Array.isArray(pages) || pages.length === 0) {
+      return res.status(400).json({ success: false, error: 'Thiếu thông tin nhân sự hoặc danh sách trang.' });
+    }
+
+    const findMaster = db.prepare(`SELECT id FROM master_pages WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR LOWER(TRIM(page_name)) = LOWER(TRIM(?)) LIMIT 1`);
+    const updateMaster = db.prepare(`UPDATE master_pages SET staff_name = ?, page_id = COALESCE(NULLIF(?, ''), page_id), department = COALESCE(NULLIF(?, ''), department), topic = COALESCE(NULLIF(?, ''), topic) WHERE id = ?`);
+    const insertMaster = db.prepare(`INSERT INTO master_pages (page_name, page_id, staff_name, department, topic, status) VALUES (?, ?, ?, ?, ?, 'Active')`);
+
+    const findPage = db.prepare(`SELECT id FROM pages WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1`);
+    const updatePage = db.prepare(`UPDATE pages SET staff_name = ?, page_id = COALESCE(NULLIF(?, ''), page_id), avatar_url = COALESCE(NULLIF(?, ''), avatar_url), page_url = COALESCE(NULLIF(?, ''), page_url), topic = COALESCE(NULLIF(?, ''), topic) WHERE id = ?`);
+    const insertPage = db.prepare(`INSERT INTO pages (name, category, page_id, page_url, avatar_url, staff_name, topic) VALUES (?, 'Của tôi', ?, ?, ?, ?, ?)`);
+
+    let importedCount = 0;
+    const runImport = db.transaction((pageList) => {
+      for (const p of pageList) {
+        const pageName = (p.pageName || p.name || '').trim();
+        if (!pageName) continue;
+        const pageId = (p.pageId || p.id || '').trim();
+        const pageUrl = p.pageUrl || p.link || (pageId ? `https://facebook.com/${pageId}` : '');
+        const avatarUrl = p.avatarUrl || p.picture?.data?.url || p.picture || '';
+        const pageTopic = p.topic || topic || 'Chưa phân loại';
+        const pageDept = p.department || department || 'Content Marketing';
+
+        // Update or Insert in master_pages
+        const existingM = findMaster.get(pageId, pageName);
+        if (existingM) {
+          updateMaster.run(staffName, pageId, pageDept, pageTopic, existingM.id);
+        } else {
+          insertMaster.run(pageName, pageId, staffName, pageDept, pageTopic);
+        }
+
+        // Update or Insert in pages
+        const existingP = findPage.get(pageId, pageName);
+        if (existingP) {
+          updatePage.run(staffName, pageId, avatarUrl, pageUrl, pageTopic, existingP.id);
+        } else {
+          insertPage.run(pageName, pageId, pageUrl, avatarUrl, staffName, pageTopic);
+        }
+
+        importedCount++;
+      }
+    });
+
+    runImport(pages);
+
+    res.json({
+      success: true,
+      message: `Đã nạp thành công ${importedCount} Fanpage cho nhân sự "${staffName}"!`,
+      count: importedCount
+    });
+  } catch (err) {
+    console.error('Import Facebook Pages error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 function normalizeDateString(dateStr) {
   if (!dateStr) return new Date().toISOString().split('T')[0];
   dateStr = String(dateStr).trim();

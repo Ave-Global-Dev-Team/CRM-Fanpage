@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kết Nối & Quét Fanpage Quản Trị - Karma CRM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #131b2e;
+      --bg-surface: #1a233a;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --fb-blue: #1877f2;
+      --fb-hover: #166fe5;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(24, 119, 242, 0.12) 0px, transparent 50%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(16px);
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header-box {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #818cf8;
+      margin-bottom: 14px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .step-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: #0f172a;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-fb-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--fb-blue);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+      box-shadow: 0 8px 20px rgba(24, 119, 242, 0.35);
+    }
+
+    .btn-fb-login:hover {
+      background: var(--fb-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(24, 119, 242, 0.45);
+    }
+
+    .btn-fb-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Page List Checklist */
+    .page-list-wrap {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .list-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    .select-all-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #a5b4fc;
+      cursor: pointer;
+    }
+
+    .page-items-box {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: #0f172a;
+      padding: 6px;
+    }
+
+    .page-item-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      transition: background 0.15s;
+      cursor: pointer;
+    }
+
+    .page-item-row:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .page-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #1e293b;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .page-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .page-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .page-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .page-id-tag {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .btn-import {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-import:hover {
+      opacity: 0.95;
+      transform: translateY(-2px);
+    }
+
+    .success-card {
+      display: none;
+      text-align: center;
+      padding: 30px 20px;
+    }
+
+    .success-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 16px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--bg-surface);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-home:hover {
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-box">
+      <div class="logo-badge">
+        <i class="fa-brands fa-facebook"></i> Facebook Page Scanner
+      </div>
+      <h1 class="title">Kết Nối & Quét Fanpage Quản Trị</h1>
+      <p class="subtitle">Đăng nhập tài khoản Facebook để tự động quét toàn bộ danh sách Fanpage bạn đang quản lý và nạp vào CRM.</p>
+    </div>
+
+    <!-- Main Wizard Card -->
+    <div id="wizardCard">
+      <!-- Step 1: Staff Selection -->
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-num">1</span>
+          <span>Chọn Nhân Sự Tiếp Nhận Fanpage</span>
+        </div>
+        <div class="form-group">
+          <label for="selectStaff">Tên Nhân Sự Phụ Trách:</label>
+          <select id="selectStaff">
+            <option value="">-- Đang tải danh sách nhân sự... --</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="inputTopic">Chủ Đề Nội Dung Mặc Định (Tùy chọn):</label>
+          <input type="text" id="inputTopic" placeholder="Ví dụ: Top trend review, Aff Decor, Fitness..." />
+        </div>
+      </div>
+
+      <!-- Step 2: Facebook Login Button -->
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-num">2</span>
+          <span>Xác Thực & Quét Danh Sách Page</span>
+        </div>
+        <button id="btnFbLogin" class="btn-fb-login">
+          <i class="fa-brands fa-facebook-f" style="font-size: 18px;"></i>
+          <span id="fbBtnText">Đăng Nhập Facebook & Quét Danh Sách Page</span>
+        </button>
+      </div>
+
+      <!-- Step 3: Page Checklist -->
+      <div id="pageListWrap" class="page-list-wrap">
+        <div class="list-actions">
+          <label class="select-all-label">
+            <input type="checkbox" id="cbSelectAll" checked style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" />
+            <span id="selectAllText">Chọn tất cả (0 trang)</span>
+          </label>
+          <span id="selectedCountBadge" style="font-size: 12px; color: var(--text-muted);">Đã chọn: 0 page</span>
+        </div>
+
+        <div id="pageItemsBox" class="page-items-box">
+          <!-- Dynamically populated -->
+        </div>
+
+        <button id="btnImportPages" class="btn-import">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <span id="btnImportText">Nhập 0 Fanpage Vào CRM</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Success View -->
+    <div id="successCard" class="success-card">
+      <div class="success-icon">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <h2 style="font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 8px;">Đồng Bộ Fanpage Thành Công!</h2>
+      <p id="successMessage" style="font-size: 14px; color: var(--text-muted); line-height: 1.5;"></p>
+      <a href="/" class="btn-home">
+        <i class="fa-solid fa-chart-pie"></i> Mở Dashboard CRM
+      </a>
+    </div>
+  </div>
+
+  <!-- Facebook SDK Initialization -->
+  <div id="fb-root"></div>
+  <script>
+    const FB_APP_ID = '27901794816116400';
+    let detectedPages = [];
+
+    // Load FB SDK
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : FB_APP_ID,
+        cookie     : true,
+        xfbml      : true,
+        version    : 'v20.0'
+      });
+      console.log('Facebook SDK ready.');
+    };
+
+    (function(d, s, id){
+       var js, fjs = d.getElementsByTagName(s)[0];
+       if (d.getElementById(id)) {return;}
+       js = d.createElement(s); js.id = id;
+       js.src = "https://connect.facebook.net/vi_VN/sdk.js";
+       fjs.parentNode.insertBefore(js, fjs);
+     }(document, 'script', 'facebook-jssdk'));
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadStaffList();
+
+      // Check URL query parameters (e.g., ?staff=LeDinhVinh)
+      const urlParams = new URLSearchParams(window.location.search);
+      const preStaff = urlParams.get('staff') || urlParams.get('staff_name');
+      if (preStaff) {
+        const sel = document.getElementById('selectStaff');
+        for (let opt of sel.options) {
+          if (opt.value.toLowerCase().includes(preStaff.toLowerCase()) || preStaff.toLowerCase().includes(opt.value.toLowerCase())) {
+            sel.value = opt.value;
+            break;
+          }
+        }
+      }
+
+      // Button Handlers
+      document.getElementById('btnFbLogin').addEventListener('click', handleFacebookLogin);
+      document.getElementById('cbSelectAll').addEventListener('change', handleToggleSelectAll);
+      document.getElementById('btnImportPages').addEventListener('click', handleImportToCRM);
+    });
+
+    async function loadStaffList() {
+      const selectStaff = document.getElementById('selectStaff');
+      try {
+        const res = await fetch('/api/auth/users');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          selectStaff.innerHTML = '<option value="">-- Chọn nhân sự quản lý --</option>';
+          json.data.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.name;
+            opt.innerText = `${u.name} (${u.department || 'Content Marketing'})`;
+            selectStaff.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        selectStaff.innerHTML = '<option value="Lê Đình Vinh">Lê Đình Vinh</option><option value="Châu Thị Anh Thư">Châu Thị Anh Thư</option><option value="Bùi Thị Trúc Phương">Bùi Thị Trúc Phương</option><option value="Phạm Thị Thanh Nga">Phạm Thị Thanh Nga</option><option value="Trương Thị Anh Nhung">Trương Thị Anh Nhung</option>';
+      }
+    }
+
+    function handleFacebookLogin() {
+      const staffName = document.getElementById('selectStaff').value;
+      if (!staffName) {
+        alert('Vui lòng chọn Tên Nhân Sự ở Bước 1 trước khi đăng nhập Facebook!');
+        document.getElementById('selectStaff').focus();
+        return;
+      }
+
+      const btn = document.getElementById('btnFbLogin');
+      const text = document.getElementById('fbBtnText');
+      btn.disabled = true;
+      text.innerText = 'Đang mở cửa sổ đăng nhập Facebook...';
+
+      FB.login(function(response) {
+        if (response.authResponse) {
+          text.innerText = 'Đang quét toàn bộ danh sách Fanpage...';
+          fetchManagedPages(response.authResponse.accessToken);
+        } else {
+          alert('Đăng nhập Facebook bị hủy hoặc không thành công.');
+          btn.disabled = false;
+          text.innerText = 'Đăng Nhập Facebook & Quét Danh Sách Page';
+        }
+      }, {
+        scope: 'pages_show_list,pages_read_engagement,public_profile',
+        return_scopes: true
+      });
+    }
+
+    function fetchManagedPages(accessToken) {
+      FB.api(
+        '/me/accounts',
+        'GET',
+        { 
+          fields: 'id,name,category,link,picture{url},followers_count,fan_count',
+          limit: 250,
+          access_token: accessToken 
+        },
+        function(response) {
+          document.getElementById('btnFbLogin').disabled = false;
+          document.getElementById('fbBtnText').innerText = '🔄 Quét Lại Danh Sách Page';
+
+          if (response && !response.error) {
+            detectedPages = response.data || [];
+            if (detectedPages.length === 0) {
+              alert('Tài khoản Facebook này hiện không có quyền quản trị Fanpage nào.');
+              return;
+            }
+            renderPageChecklist(detectedPages);
+          } else {
+            console.error('FB API Error:', response.error);
+            alert('Lỗi khi lấy danh sách Fanpage: ' + (response.error?.message || 'Không xác định'));
+          }
+        }
+      );
+    }
+
+    function renderPageChecklist(pages) {
+      const wrap = document.getElementById('pageListWrap');
+      const box = document.getElementById('pageItemsBox');
+      const selectAllText = document.getElementById('selectAllText');
+      wrap.style.display = 'block';
+      box.innerHTML = '';
+
+      selectAllText.innerText = `Chọn tất cả (${pages.length} trang)`;
+
+      pages.forEach((p, idx) => {
+        const row = document.createElement('label');
+        row.className = 'page-item-row';
+        
+        const avatarUrl = p.picture?.data?.url || 'https://graph.facebook.com/' + p.id + '/picture?type=small';
+        const pageUrl = p.link || 'https://facebook.com/' + p.id;
+        const followers = p.followers_count || p.fan_count || 0;
+
+        row.innerHTML = `
+          <input type="checkbox" class="cb-page-item" value="${p.id}" checked style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" />
+          <img src="${avatarUrl}" class="page-avatar" onerror="this.src='https://via.placeholder.com/40'" />
+          <div class="page-info">
+            <div class="page-name">${escapeHtml(p.name)}</div>
+            <div class="page-meta">
+              <span class="page-id-tag">ID: ${p.id}</span>
+              <span>${p.category || 'Fanpage'}</span>
+              ${followers > 0 ? `<span>• ${followers.toLocaleString()} follower</span>` : ''}
+              <a href="${pageUrl}" target="_blank" style="color: #60a5fa; text-decoration: none; margin-left: auto;" onclick="event.stopPropagation();">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Xem
+              </a>
+            </div>
+          </div>
+        `;
+
+        const cb = row.querySelector('.cb-page-item');
+        cb.addEventListener('change', updateSelectedCount);
+        box.appendChild(row);
+      });
+
+      updateSelectedCount();
+      wrap.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function handleToggleSelectAll(e) {
+      const isChecked = e.target.checked;
+      document.querySelectorAll('.cb-page-item').forEach(cb => cb.checked = isChecked);
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.cb-page-item');
+      const total = checkboxes.length;
+      const checked = Array.from(checkboxes).filter(cb => cb.checked);
+      
+      document.getElementById('selectedCountBadge').innerText = `Đã chọn: ${checked.length}/${total} page`;
+      document.getElementById('btnImportText').innerText = `Nhập ${checked.length} Fanpage Vào CRM`;
+      document.getElementById('cbSelectAll').checked = checked.length === total;
+    }
+
+    async function handleImportToCRM() {
+      const staffName = document.getElementById('selectStaff').value;
+      const defaultTopic = document.getElementById('inputTopic').value.trim() || 'Chưa phân loại';
+      const checkedBoxes = Array.from(document.querySelectorAll('.cb-page-item:checked'));
+
+      if (checkedBoxes.length === 0) {
+        alert('Vui lòng tích chọn ít nhất 1 Fanpage để thêm vào CRM!');
+        return;
+      }
+
+      const selectedIds = new Set(checkedBoxes.map(cb => cb.value));
+      const selectedPages = detectedPages.filter(p => selectedIds.has(String(p.id))).map(p => ({
+        pageId: String(p.id),
+        pageName: p.name,
+        category: 'Của tôi',
+        avatarUrl: p.picture?.data?.url || '',
+        pageUrl: p.link || `https://facebook.com/${p.id}`,
+        topic: defaultTopic
+      }));
+
+      const btn = document.getElementById('btnImportPages');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nạp vào CRM...';
+
+      try {
+        const res = await fetch('/api/facebook/import-pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            staffName: staffName,
+            topic: defaultTopic,
+            pages: selectedPages
+          })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          document.getElementById('wizardCard').style.display = 'none';
+          const successCard = document.getElementById('successCard');
+          successCard.style.display = 'block';
+          document.getElementById('successMessage').innerText = `Đã thêm thành công ${json.count || selectedPages.length} Fanpage vào hệ thống và gán quyền quản lý cho nhân sự "${staffName}".`;
+        } else {
+          alert('Lỗi: ' + json.error);
+          btn.disabled = false;
+          updateSelectedCount();
+        }
+      } catch (err) {
+        alert('Lỗi kết nối tới CRM: ' + err.message);
+        btn.disabled = false;
+        updateSelectedCount();
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+      });
+    }
+  </script>
+</body>
+</html>
