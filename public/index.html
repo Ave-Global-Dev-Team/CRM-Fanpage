@@ -105,13 +105,12 @@
             <i class="fa-solid fa-right-from-bracket"></i>
           </button>
 
-          <div class="date-badge-interactive" title="Chọn ngày để xem báo cáo">
+          <button class="date-badge-interactive" id="btnOpenDateRangePicker" title="Bấm để chọn khoảng thời gian xem báo cáo">
             <i class="fa-regular fa-calendar-days" style="color: var(--accent-blue);"></i>
-            <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Báo cáo:</span>
-            <select id="selectReportDate" class="report-date-dropdown">
-              <option value="">Đang tải ngày...</option>
-            </select>
-          </div>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Thời gian:</span>
+            <span id="displaySelectedDateRange" class="selected-date-text">2026-08-20</span>
+            <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left: 4px; color: var(--text-muted);"></i>
+          </button>
           <button class="btn btn-secondary" id="btnRefreshData" title="Làm mới dữ liệu">
             <i class="fa-solid fa-rotate"></i>
             <span>Làm mới</span>
@@ -1335,9 +1334,79 @@
     </div>
   </div>
 
+  <!-- DATE RANGE PICKER MODAL (DUAL CALENDAR + PRESETS) -->
+  <div id="dateRangePickerModal" class="date-picker-overlay">
+    <div class="date-picker-container glass-card">
+      <div class="date-picker-body">
+        <!-- Left Presets Sidebar -->
+        <div class="date-picker-sidebar">
+          <button type="button" class="preset-btn active" data-range="today">Today</button>
+          <button type="button" class="preset-btn" data-range="last7">Last 7 days</button>
+          <button type="button" class="preset-btn" data-range="last28">Last 28 days</button>
+          <button type="button" class="preset-btn" data-range="yesterday">Yesterday</button>
+          <button type="button" class="preset-btn" data-range="currentWeek">Current week</button>
+          <button type="button" class="preset-btn" data-range="currentMonth">Current month</button>
+          <button type="button" class="preset-btn" data-range="currentQuarter">Current quarter</button>
+          <button type="button" class="preset-btn" data-range="currentYear">Current year</button>
+          <button type="button" class="preset-btn" data-range="lastWeek">Last week</button>
+          <button type="button" class="preset-btn" data-range="lastMonth">Last month</button>
+          <button type="button" class="preset-btn" data-range="last3Months">Last 3 months</button>
+          <button type="button" class="preset-btn" data-range="lastQuarter">Last quarter</button>
+          <button type="button" class="preset-btn" data-range="lastYear">Last year</button>
+          <button type="button" class="preset-btn" data-range="monthPicker">Month picker</button>
+        </div>
+
+        <!-- Right Dual Calendar -->
+        <div class="date-picker-main">
+          <div class="calendars-wrapper">
+            <!-- Calendar 1 -->
+            <div class="calendar-month">
+              <div class="calendar-header">
+                <button type="button" class="cal-nav-btn" id="calPrevBtn" title="Tháng trước"><i class="fa-solid fa-chevron-left"></i></button>
+                <span class="cal-month-title" id="calMonthTitle1">Aug 2026</span>
+                <div style="width: 28px;"></div>
+              </div>
+              <div class="calendar-weekdays">
+                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+              </div>
+              <div class="calendar-days-grid" id="calDaysGrid1"></div>
+            </div>
+
+            <!-- Calendar 2 -->
+            <div class="calendar-month">
+              <div class="calendar-header">
+                <div style="width: 28px;"></div>
+                <span class="cal-month-title" id="calMonthTitle2">Sep 2026</span>
+                <button type="button" class="cal-nav-btn" id="calNextBtn" title="Tháng sau"><i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+              <div class="calendar-weekdays">
+                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+              </div>
+              <div class="calendar-days-grid" id="calDaysGrid2"></div>
+            </div>
+          </div>
+
+          <!-- Bottom Footer Controls -->
+          <div class="date-picker-footer">
+            <div class="footer-inputs">
+              <span class="custom-badge"><i class="fa-solid fa-square-check"></i> Custom</span>
+              <input type="text" id="inputRangeStart" class="range-date-input" readonly placeholder="YYYY-MM-DD">
+              <span style="color: var(--text-muted); font-weight: bold; font-size: 14px;">-</span>
+              <input type="text" id="inputRangeEnd" class="range-date-input" readonly placeholder="YYYY-MM-DD">
+            </div>
+            <div class="footer-actions">
+              <button type="button" class="btn btn-secondary btn-sm" id="btnCancelDateRange">Hủy</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btnApplyDateRange"><i class="fa-solid fa-check"></i> Áp Dụng</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification Toast -->
   <div id="toast" class="toast"></div>
 
-  <script src="js/app.js?v=2.8"></script>
+  <script src="js/app.js?v=2.9"></script>
 </body>
 </html>

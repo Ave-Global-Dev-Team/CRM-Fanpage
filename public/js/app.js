@@ -2,7 +2,15 @@
 let charts = {};
 let currentOverviewData = null;
 let currentDaysFilter = 14;
-let currentSelectedReportDate = '';
+let currentStartDate = '2026-08-20';
+let currentEndDate = '2026-08-20';
+let currentSelectedReportDate = '2026-08-20';
+let tempStartDate = '2026-08-20';
+let tempEndDate = '2026-08-20';
+let availableReportDates = ['2026-08-20', '2026-08-19'];
+let calViewYear = 2026;
+let calViewMonth = 7; // August (0-indexed)
+
 let currentUser = JSON.parse(localStorage.getItem('karma_crm_user')) || {
   name: 'Admin',
   role: 'admin',
@@ -15,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initAuthAndUserSwitcher();
   initEventListeners();
+  initDateRangePicker();
   loadAllData();
   
   // Auto refresh every 60s
@@ -690,10 +699,331 @@ function initEventListeners() {
   initTopicsEventListeners();
 
   // Refresh Webhook logs
-  document.getElementById('btnRefreshLogs').addEventListener('click', () => {
+  document.getElementById('btnRefreshLogs')?.addEventListener('click', () => {
     loadWebhookLogs();
     showToast('Đã cập nhật nhật ký Webhook');
   });
+}
+
+// ----------------------------------------------------
+// 2.5 ADVANCED DATE RANGE PICKER (DUAL CALENDAR & PRESETS)
+// ----------------------------------------------------
+function initDateRangePicker() {
+  const modal = document.getElementById('dateRangePickerModal');
+  const triggerBtn = document.getElementById('btnOpenDateRangePicker');
+  const cancelBtn = document.getElementById('btnCancelDateRange');
+  const applyBtn = document.getElementById('btnApplyDateRange');
+  const prevBtn = document.getElementById('calPrevBtn');
+  const nextBtn = document.getElementById('calNextBtn');
+
+  if (!modal || !triggerBtn) return;
+
+  triggerBtn.addEventListener('click', () => {
+    openDateRangePickerModal();
+  });
+
+  cancelBtn?.addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+    }
+  });
+
+  applyBtn?.addEventListener('click', () => {
+    applySelectedDateRange();
+  });
+
+  prevBtn?.addEventListener('click', () => {
+    calViewMonth--;
+    if (calViewMonth < 0) {
+      calViewMonth = 11;
+      calViewYear--;
+    }
+    renderDualCalendar();
+  });
+
+  nextBtn?.addEventListener('click', () => {
+    calViewMonth++;
+    if (calViewMonth > 11) {
+      calViewMonth = 0;
+      calViewYear++;
+    }
+    renderDualCalendar();
+  });
+
+  // Preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const rangeType = btn.getAttribute('data-range');
+      selectPresetRange(rangeType);
+    });
+  });
+}
+
+function openDateRangePickerModal() {
+  const modal = document.getElementById('dateRangePickerModal');
+  if (!modal) return;
+
+  tempStartDate = currentStartDate || '2026-08-20';
+  tempEndDate = currentEndDate || '2026-08-20';
+
+  if (tempStartDate) {
+    const parts = tempStartDate.split('-');
+    if (parts.length === 3) {
+      calViewYear = parseInt(parts[0]);
+      calViewMonth = parseInt(parts[1]) - 1;
+    }
+  }
+
+  updateRangeInputsDisplay();
+  renderDualCalendar();
+  modal.classList.add('active');
+}
+
+function updateRangeInputsDisplay() {
+  const startInp = document.getElementById('inputRangeStart');
+  const endInp = document.getElementById('inputRangeEnd');
+  if (startInp) startInp.value = tempStartDate || '';
+  if (endInp) endInp.value = tempEndDate || tempStartDate || '';
+}
+
+const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function renderDualCalendar() {
+  const y1 = calViewYear;
+  const m1 = calViewMonth;
+  const title1 = document.getElementById('calMonthTitle1');
+  if (title1) title1.innerText = `${MONTH_NAMES_SHORT[m1]} ${y1}`;
+  renderSingleMonthCalendar('calDaysGrid1', y1, m1);
+
+  let y2 = y1;
+  let m2 = m1 + 1;
+  if (m2 > 11) {
+    m2 = 0;
+    y2++;
+  }
+  const title2 = document.getElementById('calMonthTitle2');
+  if (title2) title2.innerText = `${MONTH_NAMES_SHORT[m2]} ${y2}`;
+  renderSingleMonthCalendar('calDaysGrid2', y2, m2);
+}
+
+function formatDateStr(year, month, day) {
+  const m = String(month + 1).padStart(2, '0');
+  const d = String(day).padStart(2, '0');
+  return `${year}-${m}-${d}`;
+}
+
+function renderSingleMonthCalendar(containerId, year, month) {
+  const grid = document.getElementById(containerId);
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 = Sun
+  const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+  // Previous month trailing days
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const prevDay = prevMonthTotalDays - i;
+    const prevMonthIdx = month === 0 ? 11 : month - 1;
+    const prevYear = month === 0 ? year - 1 : year;
+    const dateStr = formatDateStr(prevYear, prevMonthIdx, prevDay);
+    const dayEl = createDayElement(prevDay, dateStr, true);
+    grid.appendChild(dayEl);
+  }
+
+  // Current month days
+  for (let d = 1; d <= totalDaysInMonth; d++) {
+    const dateStr = formatDateStr(year, month, d);
+    const dayEl = createDayElement(d, dateStr, false);
+    grid.appendChild(dayEl);
+  }
+
+  // Next month leading days (to fill 42 cells)
+  const currentTotal = firstDayOfWeek + totalDaysInMonth;
+  const remaining = 42 - currentTotal;
+  for (let d = 1; d <= remaining; d++) {
+    const nextMonthIdx = month === 11 ? 0 : month + 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    const dateStr = formatDateStr(nextYear, nextMonthIdx, d);
+    const dayEl = createDayElement(d, dateStr, true);
+    grid.appendChild(dayEl);
+  }
+}
+
+function createDayElement(dayNum, dateStr, isOtherMonth) {
+  const div = document.createElement('div');
+  div.className = 'cal-day' + (isOtherMonth ? ' other-month' : '');
+  div.innerText = dayNum;
+  div.setAttribute('data-date', dateStr);
+
+  if (availableReportDates.includes(dateStr)) {
+    div.classList.add('has-data');
+    div.title = `Có báo cáo dữ liệu: ${dateStr}`;
+  }
+
+  // Highlight selection range
+  if (tempStartDate && tempEndDate) {
+    if (tempStartDate === tempEndDate && dateStr === tempStartDate) {
+      div.classList.add('selected-single');
+    } else if (dateStr === tempStartDate) {
+      div.classList.add('selected-start');
+    } else if (dateStr === tempEndDate) {
+      div.classList.add('selected-end');
+    } else if (dateStr > tempStartDate && dateStr < tempEndDate) {
+      div.classList.add('in-range');
+    }
+  } else if (tempStartDate && dateStr === tempStartDate) {
+    div.classList.add('selected-single');
+  }
+
+  div.addEventListener('click', () => {
+    handleCalendarDateClick(dateStr);
+  });
+
+  return div;
+}
+
+function handleCalendarDateClick(dateStr) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+
+  if (!tempStartDate || (tempStartDate && tempEndDate)) {
+    tempStartDate = dateStr;
+    tempEndDate = null;
+  } else {
+    if (dateStr < tempStartDate) {
+      tempEndDate = tempStartDate;
+      tempStartDate = dateStr;
+    } else {
+      tempEndDate = dateStr;
+    }
+  }
+
+  updateRangeInputsDisplay();
+  renderDualCalendar();
+}
+
+function selectPresetRange(rangeType) {
+  const refDateStr = (availableReportDates && availableReportDates[0]) || '2026-08-20';
+  const ref = new Date(refDateStr);
+
+  let start = new Date(ref);
+  let end = new Date(ref);
+
+  switch (rangeType) {
+    case 'today':
+      start = new Date(ref);
+      end = new Date(ref);
+      break;
+    case 'yesterday':
+      start.setDate(start.getDate() - 1);
+      end.setDate(end.getDate() - 1);
+      break;
+    case 'last7':
+      start.setDate(start.getDate() - 6);
+      break;
+    case 'last28':
+      start.setDate(start.getDate() - 27);
+      break;
+    case 'currentWeek': {
+      const day = ref.getDay();
+      const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
+      start = new Date(ref.setDate(diff));
+      end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      break;
+    }
+    case 'lastWeek': {
+      const day = ref.getDay();
+      const diff = ref.getDate() - day + (day === 0 ? -6 : 1) - 7;
+      start = new Date(ref.setDate(diff));
+      end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      break;
+    }
+    case 'currentMonth':
+      start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+      end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+      break;
+    case 'lastMonth':
+      start = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+      end = new Date(ref.getFullYear(), ref.getMonth(), 0);
+      break;
+    case 'last3Months':
+      start = new Date(ref.getFullYear(), ref.getMonth() - 2, 1);
+      end = new Date(ref);
+      break;
+    case 'currentQuarter': {
+      const qMonth = Math.floor(ref.getMonth() / 3) * 3;
+      start = new Date(ref.getFullYear(), qMonth, 1);
+      end = new Date(ref.getFullYear(), qMonth + 3, 0);
+      break;
+    }
+    case 'lastQuarter': {
+      const qMonth = Math.floor(ref.getMonth() / 3) * 3 - 3;
+      start = new Date(ref.getFullYear(), qMonth, 1);
+      end = new Date(ref.getFullYear(), qMonth + 3, 0);
+      break;
+    }
+    case 'currentYear':
+      start = new Date(ref.getFullYear(), 0, 1);
+      end = new Date(ref.getFullYear(), 11, 31);
+      break;
+    case 'lastYear':
+      start = new Date(ref.getFullYear() - 1, 0, 1);
+      end = new Date(ref.getFullYear() - 1, 11, 31);
+      break;
+    case 'monthPicker':
+      start = new Date(ref.getFullYear(), ref.getMonth(), 1);
+      end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+      break;
+  }
+
+  tempStartDate = formatDateObj(start);
+  tempEndDate = formatDateObj(end);
+
+  calViewYear = start.getFullYear();
+  calViewMonth = start.getMonth();
+
+  updateRangeInputsDisplay();
+  renderDualCalendar();
+}
+
+function formatDateObj(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function applySelectedDateRange() {
+  if (!tempEndDate) {
+    tempEndDate = tempStartDate;
+  }
+
+  currentStartDate = tempStartDate;
+  currentEndDate = tempEndDate;
+  currentSelectedReportDate = tempEndDate;
+
+  const displayEl = document.getElementById('displaySelectedDateRange');
+  if (displayEl) {
+    if (currentStartDate === currentEndDate) {
+      displayEl.innerText = currentStartDate;
+    } else {
+      displayEl.innerText = `${currentStartDate} ➔ ${currentEndDate}`;
+    }
+  }
+
+  const modal = document.getElementById('dateRangePickerModal');
+  if (modal) modal.classList.remove('active');
+
+  showToast(`Đang hiển thị báo cáo: ${displayEl ? displayEl.innerText : currentEndDate}`);
+  loadAllData();
 }
 
 // ----------------------------------------------------
@@ -715,10 +1045,7 @@ async function loadAllData() {
 
 async function loadOverviewData(days = 14) {
   try {
-    let url = `/api/overview?days=${days}`;
-    if (currentSelectedReportDate) {
-      url += `&report_date=${encodeURIComponent(currentSelectedReportDate)}`;
-    }
+    let url = `/api/overview?days=${days}&start_date=${encodeURIComponent(currentStartDate)}&end_date=${encodeURIComponent(currentEndDate)}`;
     if (currentUser.role !== 'admin') {
       url += `&staff_name=${encodeURIComponent(currentUser.name)}`;
     }
@@ -729,20 +1056,18 @@ async function loadOverviewData(days = 14) {
     const data = json.data;
     currentOverviewData = data;
 
-    // Update Date dropdown
-    const dateSelect = document.getElementById('selectReportDate');
-    if (dateSelect) {
-      const activeDate = currentSelectedReportDate || data.latestDate || '';
-      if (data.availableDates && data.availableDates.length > 0) {
-        dateSelect.innerHTML = data.availableDates.map((d, idx) => `
-          <option value="${d}" ${d === activeDate ? 'selected' : ''}>
-            ${d} ${idx === 0 ? '(Mới nhất)' : ''}
-          </option>
-        `).join('');
+    if (data.availableDates && data.availableDates.length > 0) {
+      availableReportDates = data.availableDates;
+    }
+
+    // Update Header Date Range Display Text
+    const displayEl = document.getElementById('displaySelectedDateRange');
+    if (displayEl) {
+      if (currentStartDate === currentEndDate) {
+        displayEl.innerText = currentStartDate;
       } else {
-        dateSelect.innerHTML = `<option value="${activeDate}">${activeDate || 'Chưa có'}</option>`;
+        displayEl.innerText = `${currentStartDate} ➔ ${currentEndDate}`;
       }
-      dateSelect.value = activeDate;
     }
     document.getElementById('navPageCount').innerText = data.totalPages;
 
@@ -991,13 +1316,12 @@ function updateSortHeaderIcons() {
 async function loadPagesTable() {
   try {
     let params = [];
-    if (currentSelectedReportDate) {
-      params.push(`report_date=${encodeURIComponent(currentSelectedReportDate)}`);
-    }
+    params.push(`start_date=${encodeURIComponent(currentStartDate)}`);
+    params.push(`end_date=${encodeURIComponent(currentEndDate)}`);
     if (currentUser.role !== 'admin') {
       params.push(`staff_name=${encodeURIComponent(currentUser.name)}`);
     }
-    let url = '/api/pages' + (params.length > 0 ? '?' + params.join('&') : '');
+    let url = '/api/pages?' + params.join('&');
     const res = await fetch(url);
     const json = await res.json();
     if (!json.success) return;
@@ -1754,10 +2078,7 @@ let allMasterList = [];
 
 async function loadStaffData() {
   try {
-    let url = '/api/staff';
-    if (currentSelectedReportDate) {
-      url += `?report_date=${encodeURIComponent(currentSelectedReportDate)}`;
-    }
+    let url = `/api/staff?start_date=${encodeURIComponent(currentStartDate)}&end_date=${encodeURIComponent(currentEndDate)}`;
     const res = await fetch(url);
     const json = await res.json();
     if (!json.success) return;
