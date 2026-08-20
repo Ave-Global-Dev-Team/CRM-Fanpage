@@ -135,8 +135,30 @@ function initDb() {
   // Ensure Admin account exists
   db.prepare("INSERT OR IGNORE INTO staff (name, role, department) VALUES ('Admin', 'admin', 'Ban Giám Đốc')").run();
 
-  // Seed staff accounts
+  // Migration: clean deleted staff & rename requested staff
+  try {
+    db.prepare("DELETE FROM staff WHERE name IN ('Trần Thị B', 'Mai Đức', 'Nguyễn Văn A')").run();
+    db.prepare("DELETE FROM master_pages WHERE staff_name IN ('Trần Thị B', 'Mai Đức', 'Nguyễn Văn A')").run();
+    db.prepare("UPDATE pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Thị B', 'Mai Đức', 'Nguyễn Văn A')").run();
+    db.prepare("UPDATE posts SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Thị B', 'Mai Đức', 'Nguyễn Văn A')").run();
+
+    db.prepare("UPDATE staff SET name = 'Mai Văn Đức ( AFF Fitness)', department = 'AFF Fitness' WHERE name IN ('Đức n8n Fitness')").run();
+    db.prepare("UPDATE pages SET staff_name = 'Mai Văn Đức ( AFF Fitness)' WHERE staff_name = 'Đức n8n Fitness'").run();
+    db.prepare("UPDATE master_pages SET staff_name = 'Mai Văn Đức ( AFF Fitness)', department = 'AFF Fitness' WHERE staff_name = 'Đức n8n Fitness'").run();
+    db.prepare("UPDATE posts SET staff_name = 'Mai Văn Đức ( AFF Fitness)' WHERE staff_name = 'Đức n8n Fitness'").run();
+
+    db.prepare("UPDATE staff SET name = 'Mai Văn Đức ( AFF Decor)', department = 'AFF Decor' WHERE name IN ('Đức decor n8n')").run();
+    db.prepare("UPDATE pages SET staff_name = 'Mai Văn Đức ( AFF Decor)' WHERE staff_name = 'Đức decor n8n'").run();
+    db.prepare("UPDATE master_pages SET staff_name = 'Mai Văn Đức ( AFF Decor)', department = 'AFF Decor' WHERE staff_name = 'Đức decor n8n'").run();
+    db.prepare("UPDATE posts SET staff_name = 'Mai Văn Đức ( AFF Decor)' WHERE staff_name = 'Đức decor n8n'").run();
+  } catch (e) {
+    console.error('Migration staff error:', e);
+  }
+
+  // Seed active staff accounts
   const insertStaffInitial = db.prepare("INSERT OR REPLACE INTO staff (name, code, role, password, department) VALUES (?, ?, 'staff', '123456', ?)");
+  insertStaffInitial.run('Mai Văn Đức ( AFF Fitness)', 'NV_DUC_FITNESS', 'AFF Fitness');
+  insertStaffInitial.run('Mai Văn Đức ( AFF Decor)', 'NV_DUC_DECOR', 'AFF Decor');
   insertStaffInitial.run('Trần Đông Ban', 'NV_BAN', 'Affiftfy');
   insertStaffInitial.run('Nguyễn Thị Kim Ngọc', 'NV_NGOC', 'Affiftfy');
   insertStaffInitial.run('Nguyễn Thị Cẩm Thuý', 'NV_THUY', 'Mobile App');
@@ -155,21 +177,21 @@ function initDb() {
 
 function seedSampleData() {
   const samplePages = [
-    { name: "Oriental-Inspired Home Decor", page_id: "105542329243433", bm: "AVE Global 5.1", workflow: "n8n decor 1", status: "Active", staff: "Đức decor n8n", topic: "KOC review gia dụng" },
-    { name: "Entryway Emporium", page_id: "321776644349815", bm: "AVE Global 5.1", workflow: "n8n decor 2", status: "Active", staff: "Đức decor n8n", topic: "KOC review gia dụng" },
-    { name: "TechExpertise Hub", page_id: "201515329711126", bm: "AVE Global 5.1", workflow: "n8n decor 3", status: "Active", staff: "Đức decor n8n", topic: "KOC review gia dụng" },
-    { name: "Home Innovations", page_id: "351944711341364", bm: "AVE Global 5.1", workflow: "n8n decor 4", status: "Active", staff: "Đức decor n8n", topic: "KOC review gia dụng" },
-    { name: "Rustic Kitchen Spot", page_id: "213806318473811", bm: "AVE Global 5.1", workflow: "n8n decor 5", status: "Active", staff: "Đức decor n8n", topic: "KOC review gia dụng" },
-    { name: "Home Essentials Emporium", page_id: "284558068082200", bm: "AVE Global 5.1", workflow: "n8n decor 11", status: "Active", staff: "Đức decor n8n", topic: "KOC review decor" },
-    { name: "Home Feast Decor", page_id: "313945568464760", bm: "AVE Global 5.1", workflow: "n8n decor 12", status: "Active", staff: "Đức decor n8n", topic: "KOC review decor" },
-    { name: "Kingdom Kraze", page_id: "339850282535287", bm: "AVE Global 5.1", workflow: "n8n decor 13", status: "Active", staff: "Đức decor n8n", topic: "KOC review decor" },
-    { name: "Desert-Inspired Home Design", page_id: "100311526445290", bm: "AVE Global 1.5", workflow: "n8n decor 14", status: "Active", staff: "Đức decor n8n", topic: "KOC review decor" },
-    { name: "Intérieur Chic", page_id: "266409643219582", bm: "AVE Tool 2.7", workflow: "n8n decor 21", status: "Active", staff: "Đức decor n8n", topic: "Top trend review" },
-    { name: "Ambiance Apaisante", page_id: "241482175722896", bm: "AVE Tool 2.7", workflow: "n8n decor 22", status: "Active", staff: "Đức decor n8n", topic: "Top trend review" },
-    { name: "Atmosphère Harmonieuse", page_id: "285486621304856", bm: "AVE Tool 2.7", workflow: "n8n decor 23", status: "Active", staff: "Đức decor n8n", topic: "Top trend review" },
-    { name: "Urban Oasis", page_id: "116012434869808", bm: "AVE Global 1.5", workflow: "n8n fitness 1", status: "Active", staff: "Đức n8n Fitness", topic: "Fitness & Sức khỏe" },
-    { name: "DIY Decor Hacks", page_id: "105748409222743", bm: "AVE Global 5.1", workflow: "n8n decor 8", status: "Active", staff: "Nguyễn Văn A", topic: "KOC review decor" },
-    { name: "Retro Modern Furniture", page_id: "106175722516003", bm: "AVE Tool 1.2", workflow: "n8n decor 17", status: "Active", staff: "Trần Thị B", topic: "KOC review gia dụng" }
+    { name: "Oriental-Inspired Home Decor", page_id: "105542329243433", bm: "AVE Global 5.1", workflow: "n8n decor 1", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review gia dụng" },
+    { name: "Entryway Emporium", page_id: "321776644349815", bm: "AVE Global 5.1", workflow: "n8n decor 2", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review gia dụng" },
+    { name: "TechExpertise Hub", page_id: "201515329711126", bm: "AVE Global 5.1", workflow: "n8n decor 3", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review gia dụng" },
+    { name: "Home Innovations", page_id: "351944711341364", bm: "AVE Global 5.1", workflow: "n8n decor 4", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review gia dụng" },
+    { name: "Rustic Kitchen Spot", page_id: "213806318473811", bm: "AVE Global 5.1", workflow: "n8n decor 5", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review gia dụng" },
+    { name: "Home Essentials Emporium", page_id: "284558068082200", bm: "AVE Global 5.1", workflow: "n8n decor 11", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review decor" },
+    { name: "Home Feast Decor", page_id: "313945568464760", bm: "AVE Global 5.1", workflow: "n8n decor 12", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review decor" },
+    { name: "Kingdom Kraze", page_id: "339850282535287", bm: "AVE Global 5.1", workflow: "n8n decor 13", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review decor" },
+    { name: "Desert-Inspired Home Design", page_id: "100311526445290", bm: "AVE Global 1.5", workflow: "n8n decor 14", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "KOC review decor" },
+    { name: "Intérieur Chic", page_id: "266409643219582", bm: "AVE Tool 2.7", workflow: "n8n decor 21", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "Top trend review" },
+    { name: "Ambiance Apaisante", page_id: "241482175722896", bm: "AVE Tool 2.7", workflow: "n8n decor 22", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "Top trend review" },
+    { name: "Atmosphère Harmonieuse", page_id: "285486621304856", bm: "AVE Tool 2.7", workflow: "n8n decor 23", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "Top trend review" },
+    { name: "Urban Oasis", page_id: "116012434869808", bm: "AVE Global 1.5", workflow: "n8n fitness 1", status: "Active", staff: "Mai Văn Đức ( AFF Fitness)", topic: "Fitness & Sức khỏe" },
+    { name: "DIY Decor Hacks", page_id: "105748409222743", bm: "AVE Global 5.1", workflow: "n8n decor 8", status: "Active", staff: "Trần Đông Ban", topic: "KOC review decor" },
+    { name: "Retro Modern Furniture", page_id: "106175722516003", bm: "AVE Tool 1.2", workflow: "n8n decor 17", status: "Active", staff: "Nguyễn Thị Kim Ngọc", topic: "KOC review gia dụng" }
   ];
 
   const insertStaff = db.prepare("INSERT OR IGNORE INTO staff (name, department) VALUES (?, ?)");
@@ -251,7 +273,7 @@ function seedSamplePosts() {
       reach: 1250,
       interactions_per_impression: 2.7,
       negative_sentiment_share: 0,
-      staff_name: "Đức n8n Fitness"
+      staff_name: "Mai Văn Đức ( AFF Fitness)"
     },
     {
       page_name: "Urban Oasis",
@@ -269,7 +291,7 @@ function seedSamplePosts() {
       reach: 454,
       interactions_per_impression: 0.19,
       negative_sentiment_share: 0,
-      staff_name: "Đức n8n Fitness"
+      staff_name: "Mai Văn Đức ( AFF Fitness)"
     },
     {
       page_name: "Retro Modern Furniture",
@@ -377,7 +399,7 @@ function seedSamplePosts() {
       reach: 85,
       interactions_per_impression: 2.35,
       negative_sentiment_share: 0,
-      staff_name: "Đức n8n Fitness"
+      staff_name: "Mai Văn Đức ( AFF Fitness)"
     },
     {
       page_name: "The Chic Kitchen",
@@ -413,7 +435,7 @@ function seedSamplePosts() {
       reach: 20,
       interactions_per_impression: 4.5,
       negative_sentiment_share: 0,
-      staff_name: "Đức n8n Fitness"
+      staff_name: "Mai Văn Đức ( AFF Fitness)"
     },
     {
       page_name: "Chill Hack Home",

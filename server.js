@@ -613,7 +613,7 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
     const updatePageStaff = db.prepare("UPDATE pages SET staff_name = ?, topic = ?, page_id = CASE WHEN ? != '' THEN ? ELSE page_id END, page_url = CASE WHEN ? != '' THEN ? ELSE page_url END WHERE id = ?");
     const insertNewPage = db.prepare("INSERT INTO pages (name, page_id, page_url, staff_name, topic) VALUES (?, ?, ?, ?, ?)");
 
-    let lastKnownStaff = 'Đức decor n8n';
+    let lastKnownStaff = 'Chưa phân bổ';
     let count = 0;
 
     const trx = db.transaction((items) => {
@@ -640,7 +640,7 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
         if (staffName) {
           lastKnownStaff = staffName;
         } else {
-          staffName = lastKnownStaff || 'Đức decor n8n';
+          staffName = lastKnownStaff || 'Chưa phân bổ';
         }
 
         const department = bm ? `BM: ${bm}` : 'Content Marketing';
