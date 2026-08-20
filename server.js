@@ -379,7 +379,13 @@ app.get('/api/pages', (req, res) => {
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
       FROM all_p p
     `;
-    const params = [startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate];
+    const params = [
+      startDate, endDate, // views
+      startDate, endDate, // posts_per_day
+      startDate, endDate, // post_count
+      startDate, endDate, // engagement_rate
+      startDate, endDate  // followers
+    ];
     if (staff_name && staff_name !== 'all' && staff_name !== 'Admin') {
       query += ' WHERE p.staff_name = ?';
       params.push(staff_name);
