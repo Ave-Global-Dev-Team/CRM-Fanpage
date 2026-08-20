@@ -2643,29 +2643,144 @@ function initUploadHandlers() {
     }
   });
 
-  // Quick Upload directly inside Dashboard Báo Cáo Fanpage
+  // Quick Upload directly inside Dashboard Báo Cáo Fanpage (with date selector modal)
   const btnDashboardQuickUpload = document.getElementById('btnDashboardQuickUpload');
-  const dashboardFileInput = document.getElementById('dashboardFileInput');
+  const uploadKarmaModal = document.getElementById('uploadKarmaModal');
+  const btnCloseUploadKarmaModal = document.getElementById('btnCloseUploadKarmaModal');
+  const btnCancelUploadKarmaModal = document.getElementById('btnCancelUploadKarmaModal');
+  const uploadKarmaForm = document.getElementById('uploadKarmaForm');
+  const dropZoneKarmaUpload = document.getElementById('dropZoneKarmaUpload');
+  const modalKarmaFileInput = document.getElementById('modalKarmaFileInput');
+  const uploadKarmaFileName = document.getElementById('uploadKarmaFileName');
+  const uploadKarmaReportDate = document.getElementById('uploadKarmaReportDate');
+  const uploadKarmaStaffName = document.getElementById('uploadKarmaStaffName');
+  const btnSetUploadDateToday = document.getElementById('btnSetUploadDateToday');
+  const btnSetUploadDateYesterday = document.getElementById('btnSetUploadDateYesterday');
 
-  btnDashboardQuickUpload?.addEventListener('click', () => {
-    dashboardFileInput?.click();
+  // Helper to open upload modal
+  function openUploadKarmaModal() {
+    if (!uploadKarmaModal) return;
+    const todayStr = formatDateObj(new Date());
+    
+    // Set min/max allowed date
+    if (uploadKarmaReportDate) {
+      uploadKarmaReportDate.max = todayStr;
+      uploadKarmaReportDate.value = currentEndDate || currentSelectedReportDate || todayStr;
+    }
+
+    if (uploadKarmaStaffName) {
+      uploadKarmaStaffName.value = currentUser?.name || 'Admin';
+    }
+
+    if (modalKarmaFileInput) modalKarmaFileInput.value = '';
+    if (uploadKarmaFileName) uploadKarmaFileName.innerHTML = 'Bấm để chọn file hoặc kéo thả vào đây';
+    if (dropZoneKarmaUpload) dropZoneKarmaUpload.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+
+    uploadKarmaModal.classList.add('active');
+  }
+
+  function closeUploadKarmaModal() {
+    uploadKarmaModal?.classList.remove('active');
+  }
+
+  btnDashboardQuickUpload?.addEventListener('click', openUploadKarmaModal);
+  btnCloseUploadKarmaModal?.addEventListener('click', closeUploadKarmaModal);
+  btnCancelUploadKarmaModal?.addEventListener('click', closeUploadKarmaModal);
+
+  // Click drop zone to select file
+  dropZoneKarmaUpload?.addEventListener('click', () => {
+    modalKarmaFileInput?.click();
   });
 
-  dashboardFileInput?.addEventListener('change', async (e) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
+  // Drag & Drop
+  dropZoneKarmaUpload?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZoneKarmaUpload.style.borderColor = '#3b82f6';
+    dropZoneKarmaUpload.style.background = 'rgba(59, 130, 246, 0.15)';
+  });
+  dropZoneKarmaUpload?.addEventListener('dragleave', () => {
+    dropZoneKarmaUpload.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+    dropZoneKarmaUpload.style.background = 'rgba(59, 130, 246, 0.05)';
+  });
+  dropZoneKarmaUpload?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZoneKarmaUpload.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+    dropZoneKarmaUpload.style.background = 'rgba(59, 130, 246, 0.05)';
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      modalKarmaFileInput.files = e.dataTransfer.files;
+      handleSelectedKarmaFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  modalKarmaFileInput?.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleSelectedKarmaFile(e.target.files[0]);
+    }
+  });
+
+  function handleSelectedKarmaFile(file) {
+    if (!file) return;
+    const sizeKb = (file.size / 1024).toFixed(1);
+    if (uploadKarmaFileName) {
+      uploadKarmaFileName.innerHTML = `<span style="color: #60a5fa;"><i class="fa-solid fa-file-csv"></i> ${file.name}</span> <span style="font-size: 11px; color: var(--text-muted);">(${sizeKb} KB)</span>`;
+    }
+
+    // Auto detect date from filename if present
+    const m1 = file.name.match(/(20\d{2})[-_./](0[1-9]|1[0-2])[-_./](0[1-9]|[12]\d|3[01])/);
+    if (m1 && uploadKarmaReportDate) {
+      uploadKarmaReportDate.value = `${m1[1]}-${m1[2]}-${m1[3]}`;
+    } else {
+      const m2 = file.name.match(/(0[1-9]|[12]\d|3[01])[-_./](0[1-9]|1[0-2])[-_./](20\d{2})/);
+      if (m2 && uploadKarmaReportDate) {
+        uploadKarmaReportDate.value = `${m2[3]}-${m2[2]}-${m2[1]}`;
+      }
+    }
+  }
+
+  // Quick Date Shortcut buttons in Modal
+  btnSetUploadDateToday?.addEventListener('click', () => {
+    if (uploadKarmaReportDate) {
+      uploadKarmaReportDate.value = formatDateObj(new Date());
+    }
+  });
+
+  btnSetUploadDateYesterday?.addEventListener('click', () => {
+    if (uploadKarmaReportDate) {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      uploadKarmaReportDate.value = formatDateObj(d);
+    }
+  });
+
+  // Handle Form Submit
+  uploadKarmaForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!modalKarmaFileInput.files || modalKarmaFileInput.files.length === 0) {
+      alert('Vui lòng chọn file báo cáo trước khi nạp!');
+      return;
+    }
+
+    const file = modalKarmaFileInput.files[0];
+    const chosenDate = uploadKarmaReportDate.value || formatDateObj(new Date());
+
+    const todayStr = formatDateObj(new Date());
+    if (chosenDate > todayStr) {
+      alert('Không thể chọn ngày báo cáo trong tương lai!');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('report_date', chosenDate);
     if (currentUser && currentUser.name) {
       formData.append('staff_name', currentUser.name);
     }
-    const targetUploadDate = currentEndDate || currentSelectedReportDate || new Date().toISOString().split('T')[0];
-    formData.append('report_date', targetUploadDate);
 
-    const oldBtnContent = btnDashboardQuickUpload.innerHTML;
-    btnDashboardQuickUpload.disabled = true;
-    btnDashboardQuickUpload.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nạp file...';
-    showToast(`Đang xử lý & phân tích file: ${file.name}...`);
+    const btnSubmit = document.getElementById('btnSubmitUploadKarma');
+    const oldBtnContent = btnSubmit.innerHTML;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang nạp dữ liệu...';
+    showToast(`Đang nạp dữ liệu cho ngày: ${chosenDate}...`);
 
     try {
       const res = await fetch('/api/upload', {
@@ -2674,7 +2789,14 @@ function initUploadHandlers() {
       });
       const json = await res.json();
       if (json.success) {
-        showToast(`Thành công! ${json.message}`);
+        closeUploadKarmaModal();
+        showToast(`🎉 Nạp thành công báo cáo ngày ${chosenDate}! (${json.count} fanpage)`);
+        
+        // Auto set view date to the uploaded date so user sees data immediately
+        currentStartDate = chosenDate;
+        currentEndDate = chosenDate;
+        currentSelectedReportDate = chosenDate;
+        updateSelectedDateDisplay();
         loadAllData();
       } else {
         alert('Lỗi nạp file: ' + json.error);
@@ -2682,9 +2804,8 @@ function initUploadHandlers() {
     } catch (err) {
       alert('Lỗi kết nối khi nạp file: ' + err.message);
     } finally {
-      btnDashboardQuickUpload.disabled = false;
-      btnDashboardQuickUpload.innerHTML = oldBtnContent;
-      dashboardFileInput.value = '';
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = oldBtnContent;
     }
   });
 }
