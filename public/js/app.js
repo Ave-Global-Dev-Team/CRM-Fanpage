@@ -732,7 +732,7 @@ async function loadOverviewData(days = 14) {
     // Update Date dropdown
     const dateSelect = document.getElementById('selectReportDate');
     if (dateSelect) {
-      const activeDate = data.latestDate || '';
+      const activeDate = currentSelectedReportDate || data.latestDate || '';
       if (data.availableDates && data.availableDates.length > 0) {
         dateSelect.innerHTML = data.availableDates.map((d, idx) => `
           <option value="${d}" ${d === activeDate ? 'selected' : ''}>
@@ -742,6 +742,7 @@ async function loadOverviewData(days = 14) {
       } else {
         dateSelect.innerHTML = `<option value="${activeDate}">${activeDate || 'Chưa có'}</option>`;
       }
+      dateSelect.value = activeDate;
     }
     document.getElementById('navPageCount').innerText = data.totalPages;
 

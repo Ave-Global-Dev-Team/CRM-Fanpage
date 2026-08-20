@@ -278,10 +278,10 @@ app.get('/api/pages', (req, res) => {
         p.*,
         '${targetDate}' as selected_report_date,
         (SELECT MAX(report_date) FROM daily_metrics WHERE page_name = p.name) as latest_report_date,
-        COALESCE((SELECT views FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT views FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_views,
-        COALESCE((SELECT posts_per_day FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT posts_per_day FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_posts_per_day,
-        COALESCE((SELECT engagement_rate FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT engagement_rate FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_engagement_rate,
-        COALESCE((SELECT followers FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT followers FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_followers,
+        COALESCE((SELECT views FROM daily_metrics WHERE page_name = p.name AND report_date = ?), 0) as latest_views,
+        COALESCE((SELECT posts_per_day FROM daily_metrics WHERE page_name = p.name AND report_date = ?), 0) as latest_posts_per_day,
+        COALESCE((SELECT engagement_rate FROM daily_metrics WHERE page_name = p.name AND report_date = ?), 0) as latest_engagement_rate,
+        COALESCE((SELECT followers FROM daily_metrics WHERE page_name = p.name AND report_date = ?), 0) as latest_followers,
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
       FROM pages p
       WHERE EXISTS (SELECT 1 FROM daily_metrics dm WHERE dm.page_name = p.name)
