@@ -50,8 +50,8 @@ function initNavigation() {
       sub: 'Tổng hợp Views, Tốc độ tăng trưởng, Tần suất đăng (Posts/day) và Xếp loại hiệu quả theo từng chủ đề'
     },
     staff: {
-      title: 'Quản Lý Nhân Sự & Danh Sách Gốc',
-      sub: 'Đối chiếu Fanpage báo cáo với danh sách phân bổ gốc theo từng nhân sự phụ trách'
+      title: 'Danh Sách Nhân Sự + Fanpage',
+      sub: 'Đối chiếu Fanpage báo cáo với danh sách phân bổ theo từng nhân sự phụ trách'
     },
     history: {
       title: 'Lịch Sử Báo Cáo Chi Tiết Theo Ngày',
@@ -1741,11 +1741,20 @@ async function handleMasterFileUpload(e) {
 
   const formData = new FormData();
   formData.append('file', file);
+  if (currentUser && currentUser.name) {
+    formData.append('staff_name', currentUser.name);
+  }
 
-  showToast('Đang phân tích và nạp Danh sách gốc...');
+  showToast(currentUser?.role !== 'admin'
+    ? `Đang nạp và tự động gán Fanpage cho ${currentUser.name}...`
+    : 'Đang phân tích và nạp Danh sách Fanpage...');
 
   try {
-    const res = await fetch('/api/master-pages/import', {
+    let url = '/api/master-pages/import';
+    if (currentUser && currentUser.name) {
+      url += `?staff_name=${encodeURIComponent(currentUser.name)}`;
+    }
+    const res = await fetch(url, {
       method: 'POST',
       body: formData
     });
@@ -1755,6 +1764,7 @@ async function handleMasterFileUpload(e) {
       loadStaffData();
       loadMasterPagesTable();
       loadPagesTable();
+      loadTopicsData();
     } else {
       alert(json.error);
     }

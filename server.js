@@ -613,7 +613,10 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
     const updatePageStaff = db.prepare("UPDATE pages SET staff_name = ?, topic = ?, page_id = CASE WHEN ? != '' THEN ? ELSE page_id END, page_url = CASE WHEN ? != '' THEN ? ELSE page_url END WHERE id = ?");
     const insertNewPage = db.prepare("INSERT INTO pages (name, page_id, page_url, staff_name, topic) VALUES (?, ?, ?, ?, ?)");
 
-    let lastKnownStaff = 'Chưa phân bổ';
+    const uploaderStaff = (req.query.staff_name || req.body?.staff_name || '').trim();
+    const isStaffUploader = uploaderStaff && uploaderStaff !== 'Admin';
+
+    let lastKnownStaff = isStaffUploader ? uploaderStaff : 'Chưa phân bổ';
     let count = 0;
 
     const trx = db.transaction((items) => {
@@ -631,16 +634,23 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
 
         const pageName = String(findVal(['tênpage', 'têntrang', 'page', 'fanpage', 'profile', 'name'])).trim();
         const pageId = String(findVal(['profileid', 'profile-id', 'idpage', 'pageid', 'id'])).trim();
-        let staffName = String(findVal(['nhânsự', 'nhansu', 'staff', 'ngườiphụtrách', 'owner', 'nguoiphutrach', 'nv'])).trim();
+        let parsedStaff = String(findVal(['nhânsự', 'nhansu', 'staff', 'ngườiphụtrách', 'owner', 'nguoiphutrach', 'nv'])).trim();
         const bm = String(findVal(['bm', 'businessmanager'])).trim();
         const workflow = String(findVal(['workflow', 'quytrình'])).trim();
         const status = String(findVal(['trạngthái', 'trangthái', 'status'])).trim() || 'Active';
         const topic = String(findVal(['chủđề', 'chủde', 'chude', 'topic', 'theme', 'niche', 'ngành', 'lĩnhvực'])).trim() || 'Chưa phân loại';
 
-        if (staffName) {
-          lastKnownStaff = staffName;
+        let staffName = '';
+        if (isStaffUploader) {
+          // If staff imports their list, automatically assign all pages to themselves
+          staffName = uploaderStaff;
         } else {
-          staffName = lastKnownStaff || 'Chưa phân bổ';
+          if (parsedStaff) {
+            lastKnownStaff = parsedStaff;
+            staffName = parsedStaff;
+          } else {
+            staffName = lastKnownStaff || 'Chưa phân bổ';
+          }
         }
 
         const department = bm ? `BM: ${bm}` : 'Content Marketing';
