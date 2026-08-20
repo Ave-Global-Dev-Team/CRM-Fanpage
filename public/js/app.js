@@ -395,6 +395,17 @@ function updateUserHeaderDisplay() {
   if (btnOpenAddStaffModal) {
     btnOpenAddStaffModal.style.display = isAdmin ? 'inline-flex' : 'none';
   }
+
+  // Hide or show Staff filter dropdowns across tabs (Admin only)
+  const wrapperFilterPagesByStaff = document.getElementById('wrapperFilterPagesByStaff');
+  if (wrapperFilterPagesByStaff) {
+    wrapperFilterPagesByStaff.style.display = isAdmin ? 'flex' : 'none';
+  }
+
+  const filterPostsByStaff = document.getElementById('filterPostsByStaff');
+  if (filterPostsByStaff) {
+    filterPostsByStaff.style.display = isAdmin ? 'inline-block' : 'none';
+  }
 }
 
 async function loadUserAccounts() {
@@ -1006,10 +1017,15 @@ function renderSortedPagesTable() {
       : Number(valA) - Number(valB);
   });
 
-  // Filter if staff filter is selected
-  const staffFilter = document.getElementById('filterPagesByStaff')?.value || 'all';
-  if (staffFilter !== 'all') {
-    sortedList = sortedList.filter(p => (p.staff_name || 'Chưa phân bổ') === staffFilter);
+  // Filter if staff filter is selected (Admin) or currentUser (Staff)
+  const isAdminUser = currentUser && currentUser.role === 'admin';
+  if (!isAdminUser && currentUser && currentUser.name) {
+    sortedList = sortedList.filter(p => (p.staff_name || '') === currentUser.name);
+  } else {
+    const staffFilter = document.getElementById('filterPagesByStaff')?.value || 'all';
+    if (staffFilter !== 'all') {
+      sortedList = sortedList.filter(p => (p.staff_name || 'Chưa phân bổ') === staffFilter);
+    }
   }
 
   // Filter if search
