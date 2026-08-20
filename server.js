@@ -473,7 +473,17 @@ app.get('/api/staff', (req, res) => {
           SELECT COUNT(DISTINCT p.id) 
           FROM pages p 
           WHERE p.staff_name = s.name
-        ) as total_pages_count,
+        ) as pages_table_count,
+        MAX(
+          (SELECT COUNT(DISTINCT m.id) FROM master_pages m WHERE m.staff_name = s.name),
+          (SELECT COUNT(DISTINCT p.id) FROM pages p WHERE p.staff_name = s.name)
+        ) as total_pages_assigned,
+        (
+          SELECT COUNT(DISTINCT p.id) 
+          FROM pages p 
+          JOIN daily_metrics dm ON dm.page_name = p.name
+          WHERE p.staff_name = s.name AND dm.report_date = ?
+        ) as reported_pages_count,
         (
           SELECT COUNT(DISTINCT m.id) 
           FROM master_pages m 
@@ -496,31 +506,31 @@ app.get('/api/staff', (req, res) => {
           WHERE m.staff_name = s.name
           AND LOWER(m.status) LIKE '%lỗi%'
         ) as error_pages_count,
-        (
+        COALESCE((
           SELECT SUM(m.views) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 
           WHERE p.staff_name = s.name 
           AND m.report_date = ?
-        ) as total_views_latest,
-        (
+        ), 0) as total_views_latest,
+        COALESCE((
           SELECT AVG(m.posts_per_day) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 
           WHERE p.staff_name = s.name 
           AND m.report_date = ?
-        ) as avg_posts_per_day,
-        (
+        ), 0) as avg_posts_per_day,
+        COALESCE((
           SELECT AVG(m.engagement_rate) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 
           WHERE p.staff_name = s.name 
           AND m.report_date = ?
-        ) as avg_engagement_rate
+        ), 0) as avg_engagement_rate
       FROM staff s
       WHERE s.name != 'Chưa phân bổ' AND s.name != 'Unassigned'
-      ORDER BY total_views_latest DESC, s.id ASC
-    `).all(targetDate, targetDate, targetDate);
+      ORDER BY total_views_latest DESC, total_pages_assigned DESC, s.id ASC
+    `).all(targetDate, targetDate, targetDate, targetDate);
 
     // Count unassigned pages
     const unassignedCount = db.prepare("SELECT COUNT(*) as count FROM pages WHERE staff_name IS NULL OR staff_name = '' OR staff_name = 'Chưa phân bổ'").get().count;

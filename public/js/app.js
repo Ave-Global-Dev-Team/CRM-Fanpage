@@ -1859,11 +1859,11 @@ async function loadStaffData() {
       } else {
         allStaffList.forEach((s, idx) => {
           const rank = idx + 1;
+          const totalAssigned = s.total_pages_assigned || s.master_pages_count || s.pages_table_count || 0;
           const reported = s.reported_pages_count || 0;
-          const noData = s.no_data_pages_count || 0;
           const errorCount = s.error_pages_count || 0;
-          const totalAssigned = s.total_pages_assigned || (reported + noData + errorCount);
-          const percent = totalAssigned > 0 ? ((reported / totalAssigned) * 100).toFixed(0) : 0;
+          const noData = Math.max(0, totalAssigned - reported);
+          const percent = totalAssigned > 0 ? Math.min(100, Math.round((reported / totalAssigned) * 100)) : 0;
           const initials = (s.name || 'NV').split(' ').map(w => w[0]).filter(Boolean).slice(-2).join('').toUpperCase();
 
           const rankBadge = rank === 1 
