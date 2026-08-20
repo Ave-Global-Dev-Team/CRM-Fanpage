@@ -7,7 +7,7 @@ let currentEndDate = '2026-08-20';
 let currentSelectedReportDate = '2026-08-20';
 let tempStartDate = '2026-08-20';
 let tempEndDate = '2026-08-20';
-let availableReportDates = ['2026-08-20', '2026-08-19'];
+let availableReportDates = ['2026-08-20'];
 let calViewYear = 2026;
 let calViewMonth = 7; // August (0-indexed)
 

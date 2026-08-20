@@ -225,10 +225,7 @@ function initDb() {
     db.prepare("DELETE FROM staff WHERE name IN ('Chưa phân bổ', 'Unassigned')").run();
   } catch (e) {}
 
-  // Clean pages that have never had imported report data from Karma
-  try {
-    db.prepare("DELETE FROM pages WHERE name NOT IN (SELECT DISTINCT page_name FROM daily_metrics)").run();
-  } catch (e) {}
+  // Preserve all pages and master pages
 
   // Deduplicate pages by page_id & sync master assignments
   try {
