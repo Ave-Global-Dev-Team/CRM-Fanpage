@@ -361,16 +361,48 @@
         </div>
       </div>
 
-      <!-- Step 2: Facebook Login Button -->
+      <!-- Step 2: Authentication & Scanning Options -->
       <div class="step-card">
         <div class="step-header">
           <span class="step-num">2</span>
-          <span>Xác Thực & Quét Danh Sách Page</span>
+          <span>Chọn Cách Quét Danh Sách Page</span>
         </div>
-        <button id="btnFbLogin" class="btn-fb-login">
-          <i class="fa-brands fa-facebook-f" style="font-size: 18px;"></i>
-          <span id="fbBtnText">Đăng Nhập Facebook & Quét Danh Sách Page</span>
-        </button>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <button type="button" id="tabBtnFbLogin" class="tab-btn active" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--primary); background: var(--primary); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;">
+            <i class="fa-brands fa-facebook"></i> 1. Đăng Nhập Facebook
+          </button>
+          <button type="button" id="tabBtnToken" class="tab-btn" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: var(--text-muted); font-weight: 700; font-size: 13px; cursor: pointer;">
+            <i class="fa-solid fa-key"></i> 2. Dán Access Token (Nhanh)
+          </button>
+        </div>
+
+        <!-- Method 1: Facebook Login -->
+        <div id="methodFbLogin">
+          <button id="btnFbLogin" class="btn-fb-login">
+            <i class="fa-brands fa-facebook-f" style="font-size: 18px;"></i>
+            <span id="fbBtnText">Đăng Nhập Facebook & Quét Danh Sách Page</span>
+          </button>
+          <div style="margin-top: 10px; font-size: 12px; color: #94a3b8; line-height: 1.4;">
+            <i class="fa-solid fa-circle-info" style="color: #60a5fa;"></i> 
+            <em>Lưu ý:</em> Nếu gặp báo <em>"Lựa chọn không sẵn dùng"</em>, hãy đảm bảo tài khoản FB đã được thêm vào mục <strong>App roles ➔ Roles ➔ Testers</strong> trên Meta Developers hoặc chuyển qua <strong>Cách 2 (Dán Access Token)</strong>.
+          </div>
+        </div>
+
+        <!-- Method 2: Access Token Direct Scan -->
+        <div id="methodToken" style="display: none;">
+          <div class="form-group">
+            <label for="inputFbToken">Dán Facebook User Access Token:</label>
+            <input type="text" id="inputFbToken" placeholder="EAAX... (Lấy từ Graph API Explorer hoặc Meta Business)" />
+          </div>
+          <button id="btnScanToken" class="btn-fb-login" style="background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Quét Danh Sách Page Bằng Token</span>
+          </button>
+          <div style="margin-top: 10px; font-size: 12px; color: #94a3b8; line-height: 1.4;">
+            👉 Lấy Token nhanh tại: <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="color: #60a5fa; text-decoration: underline;">Graph API Explorer</a> (Tích chọn quyền <code>pages_show_list</code> ➔ Bấm <strong>Generate Access Token</strong>).
+          </div>
+        </div>
       </div>
 
       <!-- Step 3: Page Checklist -->
@@ -448,11 +480,82 @@
         }
       }
 
+      // Tab Handlers
+      const tabFb = document.getElementById('tabBtnFbLogin');
+      const tabToken = document.getElementById('tabBtnToken');
+      const mFb = document.getElementById('methodFbLogin');
+      const mToken = document.getElementById('methodToken');
+
+      tabFb.addEventListener('click', () => {
+        tabFb.style.background = 'var(--primary)';
+        tabFb.style.borderColor = 'var(--primary)';
+        tabFb.style.color = '#fff';
+        tabToken.style.background = 'transparent';
+        tabToken.style.borderColor = 'rgba(255,255,255,0.15)';
+        tabToken.style.color = 'var(--text-muted)';
+        mFb.style.display = 'block';
+        mToken.style.display = 'none';
+      });
+
+      tabToken.addEventListener('click', () => {
+        tabToken.style.background = 'var(--primary)';
+        tabToken.style.borderColor = 'var(--primary)';
+        tabToken.style.color = '#fff';
+        tabFb.style.background = 'transparent';
+        tabFb.style.borderColor = 'rgba(255,255,255,0.15)';
+        tabFb.style.color = 'var(--text-muted)';
+        mFb.style.display = 'none';
+        mToken.style.display = 'block';
+      });
+
       // Button Handlers
       document.getElementById('btnFbLogin').addEventListener('click', handleFacebookLogin);
+      document.getElementById('btnScanToken').addEventListener('click', handleScanWithToken);
       document.getElementById('cbSelectAll').addEventListener('change', handleToggleSelectAll);
       document.getElementById('btnImportPages').addEventListener('click', handleImportToCRM);
     });
+
+    async function handleScanWithToken() {
+      const staffName = document.getElementById('selectStaff').value;
+      if (!staffName) {
+        alert('Vui lòng chọn Tên Nhân Sự ở Bước 1 trước khi quét!');
+        document.getElementById('selectStaff').focus();
+        return;
+      }
+
+      const token = document.getElementById('inputFbToken').value.trim();
+      if (!token) {
+        alert('Vui lòng dán Facebook User Access Token vào ô!');
+        document.getElementById('inputFbToken').focus();
+        return;
+      }
+
+      const btn = document.getElementById('btnScanToken');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gọi Facebook API quét danh sách Page...';
+
+      try {
+        const res = await fetch(`https://graph.facebook.com/v20.0/me/accounts?fields=id,name,category,link,picture{url},followers_count,fan_count&limit=250&access_token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+
+        if (json.error) {
+          throw new Error(json.error.message);
+        }
+
+        detectedPages = json.data || [];
+        if (detectedPages.length === 0) {
+          alert('Token này không tìm thấy Fanpage nào được quản trị.');
+          return;
+        }
+
+        renderPageChecklist(detectedPages);
+      } catch (err) {
+        alert('Lỗi quét Fanpage từ Token: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Quét Danh Sách Page Bằng Token';
+      }
+    }
 
     async function loadStaffList() {
       const selectStaff = document.getElementById('selectStaff');
