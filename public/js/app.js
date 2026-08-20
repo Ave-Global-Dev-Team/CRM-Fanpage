@@ -2303,6 +2303,9 @@ function initUploadHandlers() {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append('file', file);
+    if (currentSelectedReportDate) {
+      formData.append('report_date', currentSelectedReportDate);
+    }
 
     const oldBtnContent = btnDashboardQuickUpload.innerHTML;
     btnDashboardQuickUpload.disabled = true;

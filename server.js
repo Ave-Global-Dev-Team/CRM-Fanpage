@@ -1552,8 +1552,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       const interactionsRaw = findKey(['totalinteractions', 'interactions', 'tươngtác', 'engagement', 'reactions']);
       
       const erRaw = findKey(['postinteractionrate', 'interactionrate', 'engagementrate', 'pagerate', 'tỷlệtươngtác']);
-      const followersRaw = findKey(['follower', 'followers', 'fans', 'ngườitheodõi', 'fan']);
-      const dateVal = findKey(['reportdate', 'date', 'ngày', 'time', 'thờigian', 'period']) || new Date().toISOString().split('T')[0];
+      const dateVal = findKey(['reportdate', 'date', 'ngày', 'time', 'thờigian', 'period']) || (req.body && req.body.report_date) || new Date().toISOString().split('T')[0];
 
       const views = Math.round(parseKarmaNumber(viewsRaw));
       const postCount = Math.round(parseKarmaNumber(postCountRaw));
