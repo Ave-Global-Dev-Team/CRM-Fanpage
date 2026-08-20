@@ -395,6 +395,18 @@ app.get('/api/staff', (req, res) => {
         s.*,
         (SELECT COUNT(*) FROM pages WHERE staff_name = s.name) as total_pages_assigned,
         (
+          SELECT COUNT(DISTINCT p.id) 
+          FROM pages p 
+          WHERE p.staff_name = s.name 
+          AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) > 0
+        ) as reported_pages_count,
+        (
+          SELECT COUNT(DISTINCT p.id) 
+          FROM pages p 
+          WHERE p.staff_name = s.name 
+          AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) = 0
+        ) as unreported_pages_count,
+        (
           SELECT SUM(m.views) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 

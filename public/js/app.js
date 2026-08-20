@@ -1634,18 +1634,29 @@ async function loadStaffData() {
     if (tbody) {
       tbody.innerHTML = '';
       if (allStaffList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
       } else {
         allStaffList.forEach(s => {
+          const reported = s.reported_pages_count || 0;
+          const unreported = s.unreported_pages_count || 0;
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>
               <strong>${escapeHtml(s.name)}</strong>
               ${s.department ? `<br><small style="color:var(--text-dim)">${escapeHtml(s.department)}</small>` : ''}
             </td>
-            <td><b style="color:var(--accent-purple)">${s.total_pages_assigned || 0}</b></td>
-            <td><b style="color:var(--accent-blue)">${formatNumber(s.total_views_latest || 0)}</b></td>
-            <td>${s.avg_posts_per_day ? s.avg_posts_per_day.toFixed(1) : '0.0'}</td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                <i class="fa-solid fa-circle-check" style="font-size: 11px; margin-right: 4px;"></i>${reported}
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: ${unreported > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.04)'}; color: ${unreported > 0 ? '#f59e0b' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${unreported > 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent'};">
+                <i class="fa-solid ${unreported > 0 ? 'fa-clock' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${unreported}
+              </span>
+            </td>
+            <td style="text-align: right;"><b style="color:var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
+            <td style="text-align: right; font-weight: 600;">${s.avg_posts_per_day ? s.avg_posts_per_day.toFixed(1) : '0.0'}</td>
           `;
           tbody.appendChild(tr);
         });
