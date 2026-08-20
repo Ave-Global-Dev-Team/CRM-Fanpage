@@ -1996,9 +1996,8 @@ app.all('/api/cron/check-fanpage', async (req, res) => {
       const staffReport = staffReportMap.get(matchedKey);
       staffReport.totalPages += 1;
 
-      const report = fanpageReports.find(
-        r => (pageId && r.pageId === pageId) || r.pageName.toLowerCase().trim() === pageName.toLowerCase().trim()
-      );
+      const report = (pageId ? fanpageReports.find(r => r.pageId && r.pageId.trim() === pageId.trim()) : null) 
+                  || fanpageReports.find(r => r.pageName.toLowerCase().trim() === pageName.toLowerCase().trim());
 
       const postsToday = report ? Math.floor(report.postsToday) : 0;
 

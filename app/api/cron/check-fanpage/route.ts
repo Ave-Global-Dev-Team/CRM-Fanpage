@@ -104,10 +104,9 @@ export async function GET(request: Request) {
       const staffReport = staffReportMap.get(matchedKey)!;
       staffReport.totalPages += 1;
 
-      // Tìm báo cáo tương ứng của Page
-      const report = fanpageReports.find(
-        r => (pageId && r.pageId === pageId) || r.pageName.toLowerCase().trim() === pageName.toLowerCase().trim()
-      );
+      // Tìm báo cáo tương ứng của Page (ưu tiên Page ID trước)
+      const report = (pageId ? fanpageReports.find(r => r.pageId && r.pageId.trim() === pageId.trim()) : null) 
+                  || fanpageReports.find(r => r.pageName.toLowerCase().trim() === pageName.toLowerCase().trim());
 
       // Nếu không có báo cáo -> Coi như 0 bài
       const postsToday = report ? Math.floor(report.postsToday) : 0;
@@ -303,12 +302,12 @@ async function getFanpageReportsTodayFromDB(targetDate: string): Promise<Fanpage
     const rows = db.prepare(`
       SELECT 
         d.page_name as pageName,
-        COALESCE(p.page_id, '') as pageId,
+        COALESCE(NULLIF(d.page_id, ''), p.page_id, '') as pageId,
         COALESCE(d.post_count, d.posts_per_day, 0) as postsToday,
         d.views,
         d.report_date as updatedDate
       FROM daily_metrics d
-      LEFT JOIN pages p ON d.page_name = p.name
+      LEFT JOIN pages p ON (d.page_id IS NOT NULL AND d.page_id != '' AND p.page_id = d.page_id) OR d.page_name = p.name
       WHERE d.report_date = ?
     `).all(targetDate);
 
