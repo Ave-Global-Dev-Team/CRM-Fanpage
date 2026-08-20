@@ -173,7 +173,19 @@ function initDb() {
 
   // Seed sample data if empty
   seedSampleData();
-  seedSamplePosts();
+
+  // Clean any old sample/dummy/blank posts
+  try {
+    db.prepare(`
+      DELETE FROM posts 
+      WHERE source LIKE '%Seed%' 
+         OR source LIKE '%test%' 
+         OR message LIKE '%Test post%' 
+         OR message IS NULL 
+         OR message = '' 
+         OR message = '(Không có nội dung văn bản)'
+    `).run();
+  } catch (e) {}
 }
 
 function seedSampleData() {

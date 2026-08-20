@@ -1418,7 +1418,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
           negative_sentiment_share: negativeSentiment,
           source: `Upload: ${req.file.originalname}`
         };
-      }).filter(p => p.page_name && p.page_name !== 'Unknown Page');
+      }).filter(p => p.page_name && p.page_name !== 'Unknown Page' && (p.message.trim().length > 0 || (p.post_url && (p.post_url.includes('/posts/') || p.post_url.includes('/reel/')))));
 
       const insertPost = db.prepare(`
         INSERT INTO posts 
