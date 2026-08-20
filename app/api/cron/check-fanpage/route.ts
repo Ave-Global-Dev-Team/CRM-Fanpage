@@ -36,7 +36,7 @@ export interface StaffWarningReport {
 }
 
 // 2. Cấu hình hằng số
-const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || '';
+const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || 'https://open.larksuite.com/open-apis/bot/v2/hook/0fd6adf8-b62f-4f3f-bc66-b9cc2d5c7c0a';
 const DAILY_TARGET_POSTS = 2; // Target 2 post / ngày / page
 
 export async function GET(request: Request) {
