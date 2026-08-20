@@ -183,8 +183,8 @@ function initDb() {
     db.prepare("INSERT INTO app_settings (key, value) VALUES ('api_key', 'crm_karma_secret_token_2026')").run();
   }
 
-  // Seed sample data if empty
-  seedSampleData();
+  // Disable dummy seed sample data
+  // seedSampleData();
 
   // Clean any old sample/dummy/blank posts
   try {
@@ -202,6 +202,11 @@ function initDb() {
   // Clean Chưa phân bổ from staff table
   try {
     db.prepare("DELETE FROM staff WHERE name IN ('Chưa phân bổ', 'Unassigned')").run();
+  } catch (e) {}
+
+  // Clean pages that have never had imported report data from Karma
+  try {
+    db.prepare("DELETE FROM pages WHERE name NOT IN (SELECT DISTINCT page_name FROM daily_metrics)").run();
   } catch (e) {}
 
   // Deduplicate pages by page_id & sync master assignments

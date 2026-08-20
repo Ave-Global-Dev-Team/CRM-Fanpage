@@ -276,10 +276,11 @@ app.get('/api/pages', (req, res) => {
         (SELECT followers FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1) as latest_followers,
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
       FROM pages p
+      WHERE EXISTS (SELECT 1 FROM daily_metrics dm WHERE dm.page_name = p.name)
     `;
     const params = [];
     if (staff_name && staff_name !== 'all') {
-      query += ' WHERE p.staff_name = ?';
+      query += ' AND p.staff_name = ?';
       params.push(staff_name);
     }
     query += ' ORDER BY p.id ASC';
