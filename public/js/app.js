@@ -378,13 +378,13 @@ function updateUserHeaderDisplay() {
   // Hide or show Staff Leaderboard Table (Admin only)
   const staffLeaderboardCard = document.getElementById('staffLeaderboardCard');
   if (staffLeaderboardCard) {
-    staffLeaderboardCard.style.display = isAdmin ? 'flex' : 'none';
+    staffLeaderboardCard.style.display = isAdmin ? 'block' : 'none';
   }
 
-  // Expand Master Pages Card to full width if staff
+  // Full-width cards for Master and Leaderboard
   const masterPagesCard = document.getElementById('masterPagesCard');
   if (masterPagesCard) {
-    masterPagesCard.className = isAdmin ? 'glass-card span-7' : 'glass-card span-12';
+    masterPagesCard.className = 'glass-card span-12';
   }
 
   // Hide or show Add Staff button based on role
@@ -1821,21 +1821,47 @@ async function loadStaffData() {
     if (tbody) {
       tbody.innerHTML = '';
       if (allStaffList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
       } else {
-        allStaffList.forEach(s => {
+        allStaffList.forEach((s, idx) => {
+          const rank = idx + 1;
           const reported = s.reported_pages_count || 0;
           const noData = s.no_data_pages_count || 0;
           const errorCount = s.error_pages_count || 0;
+          const totalAssigned = s.total_pages_assigned || (reported + noData + errorCount);
+          const percent = totalAssigned > 0 ? ((reported / totalAssigned) * 100).toFixed(0) : 0;
+          const initials = (s.name || 'NV').split(' ').map(w => w[0]).filter(Boolean).slice(-2).join('').toUpperCase();
+
+          const rankBadge = rank === 1 
+            ? '<span class="rank-badge rank-1" style="font-size: 16px;">🥇</span>' 
+            : rank === 2 
+            ? '<span class="rank-badge rank-2" style="font-size: 16px;">🥈</span>' 
+            : rank === 3 
+            ? '<span class="rank-badge rank-3" style="font-size: 16px;">🥉</span>' 
+            : `<span class="rank-badge rank-normal" style="font-weight: 700;">${rank}</span>`;
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
+            <td style="text-align: center;">${rankBadge}</td>
             <td>
-              <strong>${escapeHtml(s.name)}</strong>
-              ${s.department ? `<br><small style="color:var(--text-dim)">${escapeHtml(s.department)}</small>` : ''}
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+                  ${initials}
+                </div>
+                <div>
+                  <strong style="color: var(--text-color); font-size: 14px;">${escapeHtml(s.name)}</strong>
+                  ${s.department ? `<br><small style="color: var(--text-dim); font-size: 11px;"><i class="fa-solid fa-building-user" style="font-size: 10px; margin-right: 3px;"></i>${escapeHtml(s.department)}</small>` : ''}
+                </div>
+              </div>
             </td>
             <td style="text-align: center;">
-              <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);">
-                <i class="fa-solid fa-circle-check" style="font-size: 11px; margin-right: 4px;"></i>${reported}
+              <span class="badge" style="background: rgba(168, 85, 247, 0.12); color: #c084fc; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.25);">
+                <i class="fa-solid fa-layer-group" style="font-size: 11px; margin-right: 4px;"></i>${totalAssigned} page
+              </span>
+            </td>
+            <td style="text-align: center;">
+              <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);" title="${percent}% hoàn thành">
+                <i class="fa-solid fa-circle-check" style="font-size: 11px; margin-right: 4px;"></i>${reported} (${percent}%)
               </span>
             </td>
             <td style="text-align: center;">
@@ -1848,8 +1874,14 @@ async function loadStaffData() {
                 <i class="fa-solid ${errorCount > 0 ? 'fa-triangle-exclamation' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${errorCount}
               </span>
             </td>
-            <td style="text-align: right;"><b style="color:var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
-            <td style="text-align: right; font-weight: 600;">${s.avg_posts_per_day ? s.avg_posts_per_day.toFixed(1) : '0.0'}</td>
+            <td style="text-align: right;"><b style="color: var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
+            <td style="text-align: right;"><span style="color: var(--accent-purple); font-weight: 700;">${s.avg_posts_per_day ? s.avg_posts_per_day.toFixed(1) : '0.0'}</span> bài/ngày</td>
+            <td style="text-align: right;"><span style="color: var(--accent-emerald); font-weight: 700;">${s.avg_engagement_rate ? s.avg_engagement_rate.toFixed(2) : '0.00'}%</span></td>
+            <td style="text-align: center;">
+              <button class="btn btn-secondary btn-sm" onclick="filterMasterListByStaff('${escapeHtml(s.name)}')" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" title="Lọc các page của ${escapeHtml(s.name)}">
+                <i class="fa-solid fa-filter"></i> Xem Page
+              </button>
+            </td>
           `;
           tbody.appendChild(tr);
         });
@@ -1857,6 +1889,16 @@ async function loadStaffData() {
     }
   } catch (err) {
     console.error('Failed to load staff:', err);
+  }
+}
+
+function filterMasterListByStaff(staffName) {
+  const searchInput = document.getElementById('searchMasterInput');
+  if (searchInput) {
+    searchInput.value = staffName;
+    renderMasterPagesTable();
+    showToast(`Đã lọc danh sách Fanpage của nhân sự: ${staffName}`);
+    document.getElementById('masterPagesCard')?.scrollIntoView({ behavior: 'smooth' });
   }
 }
 

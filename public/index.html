@@ -764,11 +764,11 @@
         <!-- Staff Performance Table & Master Assignment -->
         <div class="charts-row" id="staffChartsRow">
           <!-- Staff Leaderboard -->
-          <div class="glass-card span-5" id="staffLeaderboardCard">
+          <div class="glass-card span-12" id="staffLeaderboardCard" style="margin-bottom: 20px;">
             <div class="card-header">
               <div class="header-left">
-                <h3><i class="fa-solid fa-trophy"></i> Hiệu Suất Theo Nhân Sự</h3>
-                <p>Tổng hợp Views và tần suất đăng bài theo người phụ trách</p>
+                <h3><i class="fa-solid fa-trophy" style="color: #fbbf24;"></i> Bảng Xếp Hạng & Hiệu Suất Theo Nhân Sự</h3>
+                <p>Tổng hợp Views, Tần suất đăng bài (Posts/day), Tỷ lệ hoàn thành báo cáo Fanpage theo từng nhân sự</p>
               </div>
               <button class="btn btn-secondary btn-sm" id="btnOpenAddStaffModal">
                 <i class="fa-solid fa-user-plus"></i> Thêm Nhân Sự
@@ -779,12 +779,16 @@
               <table class="data-table" id="staffTable">
                 <thead>
                   <tr>
-                    <th>Nhân Sự</th>
-                    <th style="text-align: center; white-space: nowrap;">Đã Báo Cáo</th>
-                    <th style="text-align: center; white-space: nowrap;">Chưa Dữ Liệu</th>
+                    <th style="width: 60px; text-align: center;">Hạng</th>
+                    <th>Nhân Sự Phụ Trách</th>
+                    <th style="text-align: center; white-space: nowrap;">Tổng Page</th>
+                    <th style="text-align: center; white-space: nowrap;">Page Đã Báo Cáo</th>
+                    <th style="text-align: center; white-space: nowrap;">Chưa Có Dữ Liệu</th>
                     <th style="text-align: center; white-space: nowrap;">Trạng Thái Lỗi</th>
                     <th style="text-align: right; white-space: nowrap;">Tổng Views</th>
                     <th style="text-align: right; white-space: nowrap;">TB Bài/Ngày</th>
+                    <th style="text-align: right; white-space: nowrap;">Tỷ Lệ ER</th>
+                    <th style="text-align: center; width: 100px;">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody id="staffTableBody">
@@ -795,7 +799,7 @@
           </div>
 
           <!-- Master Page Assignment List -->
-          <div class="glass-card span-7" id="masterPagesCard">
+          <div class="glass-card span-12" id="masterPagesCard">
             <div class="card-header">
               <div class="header-left">
                 <h3><i class="fa-solid fa-clipboard-list"></i> Danh Sách Nhân Sự + Fanpage</h3>
