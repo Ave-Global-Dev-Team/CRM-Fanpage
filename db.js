@@ -8,8 +8,8 @@ if (process.env.VERCEL) {
   // In Vercel serverless environment, filesystem is read-only except /tmp
   const tmpDbPath = path.join('/tmp', 'crm_fanpage.db');
   try {
-    if (fs.existsSync(dbPath)) {
-      // Copy project database to /tmp so fresh data from git is loaded
+    if (!fs.existsSync(tmpDbPath) && fs.existsSync(dbPath)) {
+      // Copy project database to /tmp once on cold start
       fs.copyFileSync(dbPath, tmpDbPath);
     }
   } catch (err) {
