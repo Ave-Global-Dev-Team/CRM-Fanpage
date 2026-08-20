@@ -7,14 +7,13 @@ let dbPath = path.join(__dirname, 'crm_fanpage.db');
 if (process.env.VERCEL) {
   // In Vercel serverless environment, filesystem is read-only except /tmp
   const tmpDbPath = path.join('/tmp', 'crm_fanpage.db');
-  if (!fs.existsSync(tmpDbPath)) {
-    try {
-      if (fs.existsSync(dbPath)) {
-        fs.copyFileSync(dbPath, tmpDbPath);
-      }
-    } catch (err) {
-      console.error('Failed to copy db to /tmp:', err);
+  try {
+    if (fs.existsSync(dbPath)) {
+      // Copy project database to /tmp so fresh data from git is loaded
+      fs.copyFileSync(dbPath, tmpDbPath);
     }
+  } catch (err) {
+    console.error('Failed to copy db to /tmp:', err);
   }
   dbPath = tmpDbPath;
 }

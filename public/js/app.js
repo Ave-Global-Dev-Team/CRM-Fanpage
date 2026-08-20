@@ -700,7 +700,7 @@ function initEventListeners() {
 // 3. LOAD DATA (Overview & KPIs)
 // ----------------------------------------------------
 async function loadAllData() {
-  await Promise.all([
+  await Promise.allSettled([
     loadOverviewData(currentDaysFilter),
     loadPagesTable(),
     loadTopContentData(),
