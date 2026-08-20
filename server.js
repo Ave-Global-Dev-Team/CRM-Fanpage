@@ -136,22 +136,25 @@ app.post('/api/auth/change-password', (req, res) => {
 // ----------------------------------------------------
 app.get('/api/overview', (req, res) => {
   try {
-    const days = parseInt(req.query.days) || 14;
-    const { staff_name } = req.query;
+    const { days = 7, staff_name, report_date } = req.query;
     const isStaffFiltered = staff_name && staff_name !== 'all' && staff_name !== 'Admin';
 
     // Total pages
-    let totalPagesQuery = 'SELECT COUNT(*) as count FROM pages';
+    let totalPagesQuery = 'SELECT COUNT(*) as count FROM pages WHERE EXISTS (SELECT 1 FROM daily_metrics dm WHERE dm.page_name = pages.name)';
     const totalPagesParams = [];
     if (isStaffFiltered) {
-      totalPagesQuery += ' WHERE staff_name = ?';
+      totalPagesQuery += ' AND staff_name = ?';
       totalPagesParams.push(staff_name);
     }
     const totalPages = db.prepare(totalPagesQuery).get(...totalPagesParams).count;
 
-    // Latest date recorded
+    // Available dates
+    const availableDates = db.prepare('SELECT DISTINCT report_date FROM daily_metrics ORDER BY report_date DESC LIMIT 60').all().map(r => r.report_date);
+
+    // Latest date recorded or requested date
     const latestDateRow = db.prepare('SELECT MAX(report_date) as maxDate FROM daily_metrics').get();
-    const latestDate = latestDateRow?.maxDate || new Date().toISOString().split('T')[0];
+    const defaultLatestDate = latestDateRow?.maxDate || new Date().toISOString().split('T')[0];
+    const latestDate = report_date && availableDates.includes(report_date) ? report_date : (availableDates[0] || defaultLatestDate);
 
     // Stats on latest date
     let latestStatsQuery = `
@@ -240,6 +243,7 @@ app.get('/api/overview', (req, res) => {
       success: true,
       data: {
         latestDate,
+        availableDates,
         totalPages,
         staffName: isStaffFiltered ? staff_name : 'Toàn bộ',
         summary: {
@@ -265,20 +269,24 @@ app.get('/api/overview', (req, res) => {
 // ----------------------------------------------------
 app.get('/api/pages', (req, res) => {
   try {
-    const { staff_name } = req.query;
+    const { staff_name, report_date } = req.query;
+    const availableDates = db.prepare('SELECT DISTINCT report_date FROM daily_metrics ORDER BY report_date DESC LIMIT 60').all().map(r => r.report_date);
+    const targetDate = report_date && availableDates.includes(report_date) ? report_date : (availableDates[0] || (db.prepare('SELECT MAX(report_date) as maxDate FROM daily_metrics').get()?.maxDate) || new Date().toISOString().split('T')[0]);
+
     let query = `
       SELECT 
         p.*,
+        '${targetDate}' as selected_report_date,
         (SELECT MAX(report_date) FROM daily_metrics WHERE page_name = p.name) as latest_report_date,
-        (SELECT views FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1) as latest_views,
-        (SELECT posts_per_day FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1) as latest_posts_per_day,
-        (SELECT engagement_rate FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1) as latest_engagement_rate,
-        (SELECT followers FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1) as latest_followers,
+        COALESCE((SELECT views FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT views FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_views,
+        COALESCE((SELECT posts_per_day FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT posts_per_day FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_posts_per_day,
+        COALESCE((SELECT engagement_rate FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT engagement_rate FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_engagement_rate,
+        COALESCE((SELECT followers FROM daily_metrics WHERE page_name = p.name AND report_date = ?), (SELECT followers FROM daily_metrics WHERE page_name = p.name ORDER BY report_date DESC LIMIT 1), 0) as latest_followers,
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
       FROM pages p
       WHERE EXISTS (SELECT 1 FROM daily_metrics dm WHERE dm.page_name = p.name)
     `;
-    const params = [];
+    const params = [targetDate, targetDate, targetDate, targetDate];
     if (staff_name && staff_name !== 'all') {
       query += ' AND p.staff_name = ?';
       params.push(staff_name);
@@ -286,7 +294,7 @@ app.get('/api/pages', (req, res) => {
     query += ' ORDER BY p.id ASC';
 
     const pages = db.prepare(query).all(...params);
-    res.json({ success: true, data: pages });
+    res.json({ success: true, data: pages, targetDate, availableDates });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -409,29 +417,38 @@ function findStaffForPage(pageName, pageId) {
 // Get Staff list with aggregated performance KPI
 app.get('/api/staff', (req, res) => {
   try {
+    const { report_date } = req.query;
+    const availableDates = db.prepare('SELECT DISTINCT report_date FROM daily_metrics ORDER BY report_date DESC LIMIT 60').all().map(r => r.report_date);
+    const targetDate = report_date && availableDates.includes(report_date) ? report_date : (availableDates[0] || (db.prepare('SELECT MAX(report_date) as maxDate FROM daily_metrics').get()?.maxDate) || new Date().toISOString().split('T')[0]);
+
     const staffList = db.prepare(`
       SELECT 
         s.*,
-        (SELECT COUNT(*) FROM pages WHERE staff_name = s.name) as total_pages_assigned,
+        (
+          SELECT COUNT(DISTINCT m.id) 
+          FROM master_pages m 
+          WHERE m.staff_name = s.name
+        ) as master_pages_count,
         (
           SELECT COUNT(DISTINCT p.id) 
           FROM pages p 
-          WHERE p.staff_name = s.name 
-          AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) > 0
-          AND (
-            p.page_id NOT IN (SELECT page_id FROM master_pages WHERE page_id IS NOT NULL AND page_id != '' AND staff_name = s.name AND LOWER(status) LIKE '%lỗi%')
-            OR p.page_id IS NULL OR p.page_id = ''
-          )
-        ) as reported_pages_count,
+          WHERE p.staff_name = s.name
+        ) as total_pages_count,
         (
-          SELECT COUNT(DISTINCT p.id) 
-          FROM pages p 
-          WHERE p.staff_name = s.name 
-          AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) = 0
+          SELECT COUNT(DISTINCT m.id) 
+          FROM master_pages m 
+          WHERE m.staff_name = s.name 
           AND (
-            p.page_id NOT IN (SELECT page_id FROM master_pages WHERE page_id IS NOT NULL AND page_id != '' AND staff_name = s.name AND LOWER(status) LIKE '%lỗi%')
-            OR p.page_id IS NULL OR p.page_id = ''
+            m.bm LIKE '%n8n%' 
+            OR m.workflow LIKE '%n8n%' 
+            OR m.note LIKE '%n8n%'
           )
+        ) as n8n_pages_count,
+        (
+          SELECT COUNT(DISTINCT m.id)
+          FROM master_pages m
+          WHERE m.staff_name = s.name
+          AND (m.status IS NULL OR m.status = '' OR m.status = 'Chưa nạp' OR m.status = 'Pending')
         ) as no_data_pages_count,
         (
           SELECT COUNT(DISTINCT m.id)
@@ -440,41 +457,35 @@ app.get('/api/staff', (req, res) => {
           AND LOWER(m.status) LIKE '%lỗi%'
         ) as error_pages_count,
         (
-          SELECT COUNT(DISTINCT p.id) 
-          FROM pages p 
-          WHERE p.staff_name = s.name 
-          AND (SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_name = p.name) = 0
-        ) as unreported_pages_count,
-        (
           SELECT SUM(m.views) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 
           WHERE p.staff_name = s.name 
-          AND m.report_date = (SELECT MAX(report_date) FROM daily_metrics)
+          AND m.report_date = ?
         ) as total_views_latest,
         (
           SELECT AVG(m.posts_per_day) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 
           WHERE p.staff_name = s.name 
-          AND m.report_date = (SELECT MAX(report_date) FROM daily_metrics)
+          AND m.report_date = ?
         ) as avg_posts_per_day,
         (
           SELECT AVG(m.engagement_rate) 
           FROM daily_metrics m 
           JOIN pages p ON m.page_name = p.name 
           WHERE p.staff_name = s.name 
-          AND m.report_date = (SELECT MAX(report_date) FROM daily_metrics)
+          AND m.report_date = ?
         ) as avg_engagement_rate
       FROM staff s
       WHERE s.name != 'Chưa phân bổ' AND s.name != 'Unassigned'
       ORDER BY total_views_latest DESC, s.id ASC
-    `).all();
+    `).all(targetDate, targetDate, targetDate);
 
     // Count unassigned pages
     const unassignedCount = db.prepare("SELECT COUNT(*) as count FROM pages WHERE staff_name IS NULL OR staff_name = '' OR staff_name = 'Chưa phân bổ'").get().count;
 
-    res.json({ success: true, data: staffList, unassignedCount });
+    res.json({ success: true, data: staffList, unassignedCount, targetDate, availableDates });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

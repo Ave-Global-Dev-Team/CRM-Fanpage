@@ -294,20 +294,44 @@ body {
   gap: 12px;
 }
 
-.date-badge {
+.date-badge, .date-badge-interactive {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: var(--radius-md);
   font-size: 13px;
   color: var(--text-muted);
   font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.date-badge i {
+.date-badge-interactive:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+}
+
+.report-date-dropdown {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  padding-right: 4px;
+}
+
+.report-date-dropdown option {
+  background: #1e293b;
+  color: #fff;
+  padding: 8px;
+}
+
+.date-badge i, .date-badge-interactive i {
   color: var(--accent-primary);
 }
 

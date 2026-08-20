@@ -2,6 +2,7 @@
 let charts = {};
 let currentOverviewData = null;
 let currentDaysFilter = 14;
+let currentSelectedReportDate = '';
 let currentUser = JSON.parse(localStorage.getItem('karma_crm_user')) || {
   name: 'Admin',
   role: 'admin',
@@ -504,6 +505,15 @@ function initTheme() {
 }
 
 function initEventListeners() {
+  // Date selector dropdown
+  document.getElementById('selectReportDate')?.addEventListener('change', (e) => {
+    currentSelectedReportDate = e.target.value;
+    loadOverviewData(currentDaysFilter);
+    loadPagesTable();
+    loadStaffData();
+    showToast(`Đang hiển thị báo cáo ngày: ${currentSelectedReportDate}`);
+  });
+
   // Refresh button
   document.getElementById('btnRefreshData').addEventListener('click', () => {
     loadAllData();
@@ -706,6 +716,9 @@ async function loadAllData() {
 async function loadOverviewData(days = 14) {
   try {
     let url = `/api/overview?days=${days}`;
+    if (currentSelectedReportDate) {
+      url += `&report_date=${encodeURIComponent(currentSelectedReportDate)}`;
+    }
     if (currentUser.role !== 'admin') {
       url += `&staff_name=${encodeURIComponent(currentUser.name)}`;
     }
@@ -716,8 +729,20 @@ async function loadOverviewData(days = 14) {
     const data = json.data;
     currentOverviewData = data;
 
-    // Update Date badge
-    document.getElementById('latestReportDate').innerText = `Báo cáo: ${data.latestDate || 'Chưa có'}`;
+    // Update Date dropdown
+    const dateSelect = document.getElementById('selectReportDate');
+    if (dateSelect) {
+      const activeDate = data.latestDate || '';
+      if (data.availableDates && data.availableDates.length > 0) {
+        dateSelect.innerHTML = data.availableDates.map((d, idx) => `
+          <option value="${d}" ${d === activeDate ? 'selected' : ''}>
+            ${d} ${idx === 0 ? '(Mới nhất)' : ''}
+          </option>
+        `).join('');
+      } else {
+        dateSelect.innerHTML = `<option value="${activeDate}">${activeDate || 'Chưa có'}</option>`;
+      }
+    }
     document.getElementById('navPageCount').innerText = data.totalPages;
 
     // Update KPIs
@@ -964,10 +989,14 @@ function updateSortHeaderIcons() {
 
 async function loadPagesTable() {
   try {
-    let url = '/api/pages';
-    if (currentUser.role !== 'admin') {
-      url += `?staff_name=${encodeURIComponent(currentUser.name)}`;
+    let params = [];
+    if (currentSelectedReportDate) {
+      params.push(`report_date=${encodeURIComponent(currentSelectedReportDate)}`);
     }
+    if (currentUser.role !== 'admin') {
+      params.push(`staff_name=${encodeURIComponent(currentUser.name)}`);
+    }
+    let url = '/api/pages' + (params.length > 0 ? '?' + params.join('&') : '');
     const res = await fetch(url);
     const json = await res.json();
     if (!json.success) return;
@@ -1724,7 +1753,11 @@ let allMasterList = [];
 
 async function loadStaffData() {
   try {
-    const res = await fetch('/api/staff');
+    let url = '/api/staff';
+    if (currentSelectedReportDate) {
+      url += `?report_date=${encodeURIComponent(currentSelectedReportDate)}`;
+    }
+    const res = await fetch(url);
     const json = await res.json();
     if (!json.success) return;
 

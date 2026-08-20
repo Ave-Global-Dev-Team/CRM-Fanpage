@@ -105,9 +105,12 @@
             <i class="fa-solid fa-right-from-bracket"></i>
           </button>
 
-          <div class="date-badge">
-            <i class="fa-regular fa-calendar"></i>
-            <span id="latestReportDate">Đang tải...</span>
+          <div class="date-badge-interactive" title="Chọn ngày để xem báo cáo">
+            <i class="fa-regular fa-calendar-days" style="color: var(--accent-blue);"></i>
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Báo cáo:</span>
+            <select id="selectReportDate" class="report-date-dropdown">
+              <option value="">Đang tải ngày...</option>
+            </select>
           </div>
           <button class="btn btn-secondary" id="btnRefreshData" title="Làm mới dữ liệu">
             <i class="fa-solid fa-rotate"></i>
