@@ -135,6 +135,13 @@ function initDb() {
   // Ensure Admin account exists
   db.prepare("INSERT OR IGNORE INTO staff (name, role, department) VALUES ('Admin', 'admin', 'Ban Giám Đốc')").run();
 
+  // Seed staff accounts
+  const insertStaffInitial = db.prepare("INSERT OR REPLACE INTO staff (name, code, role, password, department) VALUES (?, ?, 'staff', '123456', ?)");
+  insertStaffInitial.run('Trần Đông Ban', 'NV_BAN', 'Affiftfy');
+  insertStaffInitial.run('Nguyễn Thị Kim Ngọc', 'NV_NGOC', 'Affiftfy');
+  insertStaffInitial.run('Nguyễn Thị Cẩm Thuý', 'NV_THUY', 'Mobile App');
+  insertStaffInitial.run('Đặng Thị Hoài Na', 'NV_NA', 'Affiliate Amazon');
+
   // Default API Key setting if not exists
   const existingKey = db.prepare("SELECT value FROM app_settings WHERE key = 'api_key'").get();
   if (!existingKey) {
