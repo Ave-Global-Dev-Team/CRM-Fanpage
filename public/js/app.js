@@ -2659,9 +2659,8 @@ function initUploadHandlers() {
     if (currentUser && currentUser.name) {
       formData.append('staff_name', currentUser.name);
     }
-    if (currentSelectedReportDate) {
-      formData.append('report_date', currentSelectedReportDate);
-    }
+    const targetUploadDate = currentEndDate || currentSelectedReportDate || new Date().toISOString().split('T')[0];
+    formData.append('report_date', targetUploadDate);
 
     const oldBtnContent = btnDashboardQuickUpload.innerHTML;
     btnDashboardQuickUpload.disabled = true;

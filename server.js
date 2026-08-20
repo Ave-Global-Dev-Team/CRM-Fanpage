@@ -1427,6 +1427,24 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     const originalName = req.file.originalname.toLowerCase();
     let rows = [];
 
+    // Helper to extract date from filename (e.g. 2026-08-20, 20_08_2026, 20260820)
+    const extractDateFromFilename = (filename) => {
+      if (!filename) return null;
+      // 1. YYYY-MM-DD, YYYY_MM_DD, YYYY.MM.DD
+      const m1 = filename.match(/(20\d{2})[-_./](0[1-9]|1[0-2])[-_./](0[1-9]|[12]\d|3[01])/);
+      if (m1) return `${m1[1]}-${m1[2]}-${m1[3]}`;
+      
+      // 2. DD-MM-YYYY, DD_MM_YYYY, DD.MM.YYYY
+      const m2 = filename.match(/(0[1-9]|[12]\d|3[01])[-_./](0[1-9]|1[0-2])[-_./](20\d{2})/);
+      if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`;
+
+      // 3. YYYYMMDD
+      const m3 = filename.match(/(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/);
+      if (m3) return `${m3[1]}-${m3[2]}-${m3[3]}`;
+
+      return null;
+    };
+
     // Helper to parse numbers like "153k", "1.2M", "12,5%", "1.234"
     const parseKarmaNumber = (val) => {
       if (val === null || val === undefined) return 0;
@@ -1675,7 +1693,12 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       
       const erRaw = findKey(['postinteractionrate', 'interactionrate', 'engagementrate', 'pagerate', 'tỷlệtươngtác']);
       const followersRaw = findKey(['follower', 'followers', 'fans', 'ngườitheodõi', 'fan']);
-      const dateVal = findKey(['reportdate', 'date', 'ngày', 'time', 'thờigian', 'period']) || (req.body && req.body.report_date) || new Date().toISOString().split('T')[0];
+      const filenameDate = extractDateFromFilename(req.file?.originalname);
+      const dateVal = findKey(['reportdate', 'date', 'ngày', 'time', 'thờigian', 'period']) 
+        || (req.body && req.body.report_date) 
+        || (req.query && req.query.report_date) 
+        || filenameDate 
+        || new Date().toISOString().split('T')[0];
 
       const views = Math.round(parseKarmaNumber(viewsRaw));
       const postCount = Math.round(parseKarmaNumber(postCountRaw));
