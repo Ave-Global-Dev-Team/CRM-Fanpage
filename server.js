@@ -45,7 +45,7 @@ function authenticateApiKey(req, res, next) {
 // ----------------------------------------------------
 app.get('/api/auth/users', (req, res) => {
   try {
-    const users = db.prepare('SELECT id, name, code, role, department FROM staff ORDER BY role DESC, name ASC').all();
+    const users = db.prepare("SELECT id, name, code, role, department FROM staff WHERE name != 'Chưa phân bổ' AND name != 'Unassigned' ORDER BY role DESC, name ASC").all();
     res.json({ success: true, data: users });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -462,6 +462,7 @@ app.get('/api/staff', (req, res) => {
           AND m.report_date = (SELECT MAX(report_date) FROM daily_metrics)
         ) as avg_engagement_rate
       FROM staff s
+      WHERE s.name != 'Chưa phân bổ' AND s.name != 'Unassigned'
       ORDER BY total_views_latest DESC, s.id ASC
     `).all();
 
@@ -565,7 +566,9 @@ app.post('/api/master-pages', (req, res) => {
     `).run(trimmedPage, trimmedId, trimmedStaff, department || 'Content Marketing', trimmedTopic, bm || '', workflow || '', status || 'Active', note || '');
 
     // Ensure staff exists in staff table
-    db.prepare('INSERT OR IGNORE INTO staff (name, department) VALUES (?, ?)').run(trimmedStaff, department || 'Content Marketing');
+    if (trimmedStaff && trimmedStaff !== 'Chưa phân bổ' && trimmedStaff !== 'Unassigned') {
+      db.prepare('INSERT OR IGNORE INTO staff (name, department) VALUES (?, ?)').run(trimmedStaff, department || 'Content Marketing');
+    }
 
     // Auto sync to pages table so it shows on Dashboard/Pages table
     const existingPage = db.prepare('SELECT id FROM pages WHERE (page_id != "" AND page_id = ?) OR name = ?').get(trimmedId, trimmedPage);
@@ -707,7 +710,9 @@ app.post('/api/master-pages/import', upload.single('file'), (req, res) => {
           const finalPageName = pageName || `Page ${pageId}`;
           const pageUrl = pageId ? `https://facebook.com/${pageId}` : '';
 
-          insertStaff.run(staffName, department);
+          if (staffName && staffName !== 'Chưa phân bổ' && staffName !== 'Unassigned') {
+            insertStaff.run(staffName, department);
+          }
 
           if (pageId) deleteOldMasterById.run(pageId);
           insertMaster.run(finalPageName, pageId, staffName, department, topic, bm, workflow, status, note);

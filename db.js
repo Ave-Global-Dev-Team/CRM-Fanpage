@@ -186,6 +186,11 @@ function initDb() {
          OR message = '(Không có nội dung văn bản)'
     `).run();
   } catch (e) {}
+
+  // Clean Chưa phân bổ from staff table
+  try {
+    db.prepare("DELETE FROM staff WHERE name IN ('Chưa phân bổ', 'Unassigned')").run();
+  } catch (e) {}
 }
 
 function seedSampleData() {
