@@ -1920,6 +1920,190 @@ app.post('/api/reset-data', (req, res) => {
   }
 });
 
+// ----------------------------------------------------
+// 9. CRON ROUTE: CHECK FANPAGE POST TARGET (2 POSTS/DAY) & LARK ALERT
+// ----------------------------------------------------
+app.all('/api/cron/check-fanpage', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const targetDate = req.query.date || req.body?.date || (db.prepare('SELECT MAX(report_date) as maxDate FROM daily_metrics').get()?.maxDate) || new Date().toISOString().split('T')[0];
+    const DAILY_TARGET_POSTS = parseInt(req.query.target || req.body?.target || '2', 10);
+    const LARK_WEBHOOK_URL = req.query.webhook || req.body?.webhook || process.env.LARK_WEBHOOK_URL || (db.prepare("SELECT value FROM app_settings WHERE key = 'lark_webhook_url'").get()?.value) || '';
+
+    // 1. Lấy dữ liệu từ master_pages
+    const staffAssignments = db.prepare(`
+      SELECT 
+        COALESCE(page_id, '') as pageId,
+        page_name as pageName,
+        COALESCE(staff_name, 'Chưa phân bổ') as staffName,
+        COALESCE(status, 'Active') as status,
+        topic
+      FROM master_pages
+      WHERE status = 'Active' OR status IS NULL
+    `).all();
+
+    // 2. Lấy dữ liệu báo cáo hôm nay
+    const fanpageReports = db.prepare(`
+      SELECT 
+        d.page_name as pageName,
+        COALESCE(p.page_id, '') as pageId,
+        COALESCE(d.post_count, d.posts_per_day, 0) as postsToday,
+        d.views,
+        d.report_date as updatedDate
+      FROM daily_metrics d
+      LEFT JOIN pages p ON d.page_name = p.name
+      WHERE d.report_date = ?
+    `).all(targetDate);
+
+    // 3. Gom nhóm theo nhân sự & đối chiếu
+    const staffReportMap = new Map();
+    const activeAssignments = staffAssignments.filter(a => a.status === 'Active');
+
+    for (const assignment of activeAssignments) {
+      const { staffName, pageId, pageName } = assignment;
+      const cleanStaffName = staffName || 'Chưa phân bổ';
+
+      if (!staffReportMap.has(cleanStaffName)) {
+        staffReportMap.set(cleanStaffName, {
+          staffName: cleanStaffName,
+          totalPages: 0,
+          completedPagesCount: 0,
+          warningPages: [],
+        });
+      }
+
+      const staffReport = staffReportMap.get(cleanStaffName);
+      staffReport.totalPages += 1;
+
+      const report = fanpageReports.find(
+        r => (pageId && r.pageId === pageId) || r.pageName.toLowerCase().trim() === pageName.toLowerCase().trim()
+      );
+
+      const postsToday = report ? Math.floor(report.postsToday) : 0;
+
+      if (postsToday < DAILY_TARGET_POSTS) {
+        staffReport.warningPages.push({
+          pageId,
+          pageName,
+          postsToday,
+          target: DAILY_TARGET_POSTS,
+          missingPosts: Math.max(0, DAILY_TARGET_POSTS - postsToday),
+        });
+      } else {
+        staffReport.completedPagesCount += 1;
+      }
+    }
+
+    const staffWithWarnings = Array.from(staffReportMap.values()).filter(
+      s => s.warningPages.length > 0
+    );
+
+    let larkSent = false;
+    let larkError = null;
+
+    if (LARK_WEBHOOK_URL && staffWithWarnings.length > 0) {
+      try {
+        const cardElements = [
+          {
+            tag: 'div',
+            text: {
+              tag: 'lark_md',
+              content: `📅 **Ngày kiểm tra:** ${targetDate}\n🎯 **Chỉ tiêu:** ${DAILY_TARGET_POSTS} bài / page / ngày\n⚠️ Phát hiện **${staffWithWarnings.length} nhân sự** chưa hoàn thành chỉ tiêu bài đăng.`,
+            },
+          },
+          { tag: 'hr' },
+        ];
+
+        staffWithWarnings.forEach((staff, index) => {
+          const pageListContent = staff.warningPages
+            .slice(0, 15) // Limit top 15 to avoid exceeding card limit
+            .map(p => {
+              const badge = p.postsToday === 0 ? '🔴 **[0/2 bài]**' : '🟡 **[1/2 bài]**';
+              return `   • ${badge} **${p.pageName}** *(ID: ${p.pageId || 'N/A'})* — Thiếu ${p.missingPosts} bài`;
+            })
+            .join('\n');
+
+          const extraCount = staff.warningPages.length > 15 ? `\n   *(và ${staff.warningPages.length - 15} page khác...)*` : '';
+
+          cardElements.push({
+            tag: 'div',
+            text: {
+              tag: 'lark_md',
+              content: `👤 **Nhân sự phụ trách:** **${staff.staffName}**\n📊 **Tiến độ:** ${staff.completedPagesCount}/${staff.totalPages} Page đạt chỉ tiêu\n\n📌 **Danh sách Page chưa đủ bài:**\n${pageListContent}${extraCount}`,
+            },
+          });
+
+          if (index < staffWithWarnings.length - 1) {
+            cardElements.push({ tag: 'hr' });
+          }
+        });
+
+        cardElements.push(
+          { tag: 'hr' },
+          {
+            tag: 'action',
+            actions: [
+              {
+                tag: 'button',
+                text: { tag: 'plain_text', content: '🔗 Mở CRM Kiểm Tra Ngay' },
+                type: 'primary',
+                url: 'https://crm-fanpage.vercel.app/',
+              },
+            ],
+          }
+        );
+
+        const payload = {
+          msg_type: 'interactive',
+          card: {
+            header: {
+              title: {
+                tag: 'plain_text',
+                content: '🚨 CẢNH BÁO KPI FANPAGE: CHƯA ĐẠT 2 POST/NGÀY',
+              },
+              template: 'red',
+            },
+            elements: cardElements,
+          },
+        };
+
+        const larkRes = await fetch(LARK_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        larkSent = larkRes.ok;
+        if (!larkRes.ok) {
+          larkError = await larkRes.text();
+        }
+      } catch (err) {
+        larkError = err.message;
+      }
+    }
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      targetDate,
+      dailyTargetPosts: DAILY_TARGET_POSTS,
+      totalActivePagesChecked: activeAssignments.length,
+      warnedStaffCount: staffWithWarnings.length,
+      larkWebhookConfigured: !!LARK_WEBHOOK_URL,
+      larkSent,
+      larkError,
+      data: staffWithWarnings,
+    });
+  } catch (error) {
+    console.error('Lỗi Cron Check Fanpage:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🚀 CRM Fanpage Server is running at http://localhost:${PORT}`);
