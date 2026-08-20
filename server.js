@@ -140,10 +140,10 @@ app.get('/api/overview', (req, res) => {
     const isStaffFiltered = staff_name && staff_name !== 'all' && staff_name !== 'Admin';
 
     // Total pages
-    let totalPagesQuery = 'SELECT COUNT(*) as count FROM pages WHERE EXISTS (SELECT 1 FROM daily_metrics dm WHERE dm.page_name = pages.name)';
+    let totalPagesQuery = 'SELECT COUNT(*) as count FROM pages';
     const totalPagesParams = [];
     if (isStaffFiltered) {
-      totalPagesQuery += ' AND staff_name = ?';
+      totalPagesQuery += ' WHERE staff_name = ?';
       totalPagesParams.push(staff_name);
     }
     const totalPages = db.prepare(totalPagesQuery).get(...totalPagesParams).count;
@@ -239,6 +239,34 @@ app.get('/api/overview', (req, res) => {
     compQuery += ' ORDER BY m.views DESC LIMIT 20';
     const pageComparison = db.prepare(compQuery).all(...compParams);
 
+    // Top Growth (change compared to previous period if exists)
+    const prevDateQuery = 'SELECT MAX(report_date) as prevDate FROM daily_metrics WHERE report_date < ?';
+    const prevDateRow = db.prepare(prevDateQuery).get(latestDate);
+    const prevDate = prevDateRow?.prevDate;
+
+    let growthQuery = `
+      SELECT 
+        curr.page_name,
+        curr.views as current_views,
+        COALESCE(prev.views, 0) as prev_views,
+        curr.views - COALESCE(prev.views, 0) as views_growth,
+        CASE 
+          WHEN prev.views IS NULL OR prev.views = 0 THEN 100.0
+          ELSE ROUND(((curr.views - prev.views) * 100.0 / prev.views), 1)
+        END as growth_rate
+      FROM daily_metrics curr
+      LEFT JOIN daily_metrics prev ON curr.page_name = prev.page_name AND prev.report_date = ?
+      JOIN pages p ON curr.page_name = p.name
+      WHERE curr.report_date = ?
+    `;
+    const growthParams = [prevDate || '', latestDate];
+    if (isStaffFiltered) {
+      growthQuery += ' AND p.staff_name = ?';
+      growthParams.push(staff_name);
+    }
+    growthQuery += ' ORDER BY views_growth DESC LIMIT 5';
+    const topGrowth = db.prepare(growthQuery).all(...growthParams);
+
     res.json({
       success: true,
       data: {
@@ -255,7 +283,8 @@ app.get('/api/overview', (req, res) => {
           topPage: topPage || null
         },
         aggregatedTrend,
-        pageComparison
+        pageComparison,
+        topGrowth
       }
     });
   } catch (err) {
@@ -284,11 +313,10 @@ app.get('/api/pages', (req, res) => {
         COALESCE((SELECT followers FROM daily_metrics WHERE page_name = p.name AND report_date = ?), 0) as latest_followers,
         (SELECT COUNT(*) FROM daily_metrics WHERE page_name = p.name) as total_records
       FROM pages p
-      WHERE EXISTS (SELECT 1 FROM daily_metrics dm WHERE dm.page_name = p.name)
     `;
     const params = [targetDate, targetDate, targetDate, targetDate];
-    if (staff_name && staff_name !== 'all') {
-      query += ' AND p.staff_name = ?';
+    if (staff_name && staff_name !== 'all' && staff_name !== 'Admin') {
+      query += ' WHERE p.staff_name = ?';
       params.push(staff_name);
     }
     query += ' ORDER BY p.id ASC';
@@ -1676,6 +1704,20 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
         } else {
           insertNewPage.run(item.page_name, item.page_id || '', item.page_url || '', item.avatar_url || '', finalStaff, finalTopic);
         }
+
+        // Auto sync into master_pages so it registers in Staff & Master list permanently
+        if (finalStaff && finalStaff !== 'Chưa phân bổ') {
+          const existsMaster = db.prepare('SELECT id FROM master_pages WHERE (page_id != "" AND page_id = ?) OR page_name = ?').get(item.page_id || '', item.page_name);
+          if (!existsMaster) {
+            try {
+              db.prepare(`
+                INSERT INTO master_pages (page_name, page_id, staff_name, department, topic, bm, workflow, status, note)
+                VALUES (?, ?, ?, 'Content Marketing', ?, '', '', 'Active', 'Tự động tạo khi nhân sự nạp báo cáo')
+              `).run(item.page_name, item.page_id || '', finalStaff, finalTopic);
+            } catch (err) {}
+          }
+        }
+
         insertMetric.run(
           item.page_name,
           item.report_date,
