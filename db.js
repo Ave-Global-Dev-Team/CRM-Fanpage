@@ -157,13 +157,25 @@ function initDb() {
   }
 
   // Seed active staff accounts
-  const insertStaffInitial = db.prepare("INSERT OR REPLACE INTO staff (name, code, role, password, department) VALUES (?, ?, 'staff', '123456', ?)");
+  const insertStaffInitial = db.prepare("INSERT OR IGNORE INTO staff (name, code, role, password, department) VALUES (?, ?, 'staff', '123456', ?)");
   insertStaffInitial.run('Mai Văn Đức ( AFF Fitness)', 'NV_DUC_FITNESS', 'AFF Fitness');
   insertStaffInitial.run('Mai Văn Đức ( AFF Decor)', 'NV_DUC_DECOR', 'AFF Decor');
   insertStaffInitial.run('Trần Đông Ban', 'NV_BAN', 'Affiftfy');
   insertStaffInitial.run('Nguyễn Thị Kim Ngọc', 'NV_NGOC', 'Affiftfy');
   insertStaffInitial.run('Nguyễn Thị Cẩm Thuý', 'NV_THUY', 'Mobile App');
   insertStaffInitial.run('Đặng Thị Hoài Na', 'NV_NA', 'Affiliate Amazon');
+  insertStaffInitial.run('Nguyễn Thị Linh', 'NV_LINH', 'BM: AVE Global 1.1');
+  insertStaffInitial.run('Hồ Phi Anh', 'NV_PHIANH', 'BM: AVE Global 3.1');
+  insertStaffInitial.run('Đỗ Thị Sao', 'NV_SAO', 'BM: AVE Global 3.3');
+  insertStaffInitial.run('Phạm Thị Thanh Nga', 'NV_NGA', 'BM: AVE Global 1.1');
+  insertStaffInitial.run('Châu Thị Anh Thư', 'NV_THU', 'BM: AVE Global 1.1');
+  insertStaffInitial.run('Nguyễn Thị Thương', 'NV_THUONG', 'BM: AVE Global 3.1');
+  insertStaffInitial.run('Bùi Thị Trúc Phương', 'NV_PHUONG', 'BM: AVE Global 1.2');
+  insertStaffInitial.run('Trương Thị Anh Nhung', 'NV_NHUNG', 'BM: AVE Global 2.1');
+  insertStaffInitial.run('Trần Thị Thuý Vy', 'NV_VY', 'BM: AVE Global 2.1');
+  insertStaffInitial.run('Nguyễn Anh Tú', 'NV_TU', 'BM: AVE Global 2.1');
+  insertStaffInitial.run('Lê Đình Vinh', 'NV_VINH', 'BM: AVE Global 5.5');
+  insertStaffInitial.run('Trần Quang Quốc Đạt', 'NV_DAT', 'BM: AVE Global 1.5');
 
   // Default API Key setting if not exists
   const existingKey = db.prepare("SELECT value FROM app_settings WHERE key = 'api_key'").get();
