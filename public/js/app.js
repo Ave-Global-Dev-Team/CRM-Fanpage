@@ -121,8 +121,12 @@ function initAuthAndUserSwitcher() {
 
   updateUserHeaderDisplay();
 
-  // Switcher modal trigger
+  // Switcher modal trigger (Admin only)
   document.getElementById('btnUserSwitcher')?.addEventListener('click', () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      showToast(`Tài khoản hiện tại: ${currentUser?.name || 'Nhân sự'}. Bạn không thể chuyển sang tài khoản người khác. Vui lòng Đăng Xuất nếu muốn đổi.`);
+      return;
+    }
     loadUserAccounts();
     userSwitchModal.classList.add('active');
   });
@@ -137,7 +141,9 @@ function initAuthAndUserSwitcher() {
       currentUser = null;
       loginModal.classList.add('active');
       document.getElementById('loginForm')?.reset();
+      document.getElementById('loginPasswordInput').value = '';
       document.getElementById('loginErrorMsg').style.display = 'none';
+      loadUserAccounts();
     }
   });
 
@@ -158,6 +164,8 @@ function initAuthAndUserSwitcher() {
   document.getElementById('loginUserSelect')?.addEventListener('change', (e) => {
     if (e.target.value) {
       document.getElementById('loginUsernameInput').value = e.target.value;
+      document.getElementById('loginPasswordInput').value = '';
+      document.getElementById('loginPasswordInput').focus();
     }
   });
 
@@ -180,6 +188,12 @@ function initAuthAndUserSwitcher() {
       return;
     }
 
+    if (!password) {
+      errorEl.innerText = 'Vui lòng nhập mật khẩu cá nhân.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xác thực...';
 
@@ -191,7 +205,7 @@ function initAuthAndUserSwitcher() {
       });
       const data = await res.json();
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống';
+      submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Làm Việc';
 
       if (data.success) {
         currentUser = data.user;
@@ -206,7 +220,7 @@ function initAuthAndUserSwitcher() {
       }
     } catch (err) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống';
+      submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Làm Việc';
       errorEl.innerText = 'Lỗi kết nối máy chủ: ' + err.message;
       errorEl.style.display = 'block';
     }
@@ -219,6 +233,8 @@ function updateUserHeaderDisplay() {
   const nameEl = document.getElementById('headerUserName');
   const roleEl = document.getElementById('headerUserRole');
   const avatarEl = document.getElementById('headerUserAvatar');
+  const switcherBtn = document.getElementById('btnUserSwitcher');
+  const chevronIcon = document.getElementById('headerUserChevron');
 
   if (nameEl) nameEl.innerText = currentUser.name;
   if (roleEl) {
@@ -228,6 +244,18 @@ function updateUserHeaderDisplay() {
     avatarEl.innerHTML = currentUser.role === 'admin' 
       ? '<i class="fa-solid fa-crown"></i>' 
       : '<i class="fa-solid fa-user-check"></i>';
+  }
+
+  if (switcherBtn) {
+    if (currentUser.role === 'admin') {
+      switcherBtn.style.cursor = 'pointer';
+      switcherBtn.title = 'Nhấp để chuyển đổi tài khoản nhân sự (Quyền Admin)';
+      if (chevronIcon) chevronIcon.style.display = 'inline-block';
+    } else {
+      switcherBtn.style.cursor = 'default';
+      switcherBtn.title = `Tài khoản cá nhân: ${currentUser.name} (${currentUser.department || 'Nhân sự'})`;
+      if (chevronIcon) chevronIcon.style.display = 'none';
+    }
   }
 
   // Update page title/sub if staff
@@ -253,36 +281,19 @@ async function loadUserAccounts() {
 
     availableUsers = json.data;
 
-    // 1. Populate Login Screen Select & Quick Pills
+    // 1. Populate Login Screen Select
     const loginSelect = document.getElementById('loginUserSelect');
-    const quickPills = document.getElementById('quickLoginPills');
     if (loginSelect) {
-      loginSelect.innerHTML = '<option value="">-- Chọn nhân sự đăng nhập --</option>';
+      loginSelect.innerHTML = '<option value="">-- Chọn tài khoản nhân sự --</option>';
       availableUsers.forEach(u => {
         const opt = document.createElement('option');
         opt.value = u.name;
-        opt.innerText = `${u.name} (${u.role === 'admin' ? 'Quản trị' : u.department || 'Nhân sự'})`;
+        opt.innerText = `${u.name} (${u.role === 'admin' ? '👑 Admin' : u.department || 'Nhân sự'})`;
         loginSelect.appendChild(opt);
       });
     }
 
-    if (quickPills) {
-      quickPills.innerHTML = '';
-      availableUsers.forEach(u => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'quick-pill';
-        btn.innerHTML = `${u.role === 'admin' ? '👑' : '👤'} ${escapeHtml(u.name)}`;
-        btn.onclick = () => {
-          document.getElementById('loginUsernameInput').value = u.name;
-          document.getElementById('loginPasswordInput').value = '123456';
-          document.getElementById('loginForm').dispatchEvent(new Event('submit'));
-        };
-        quickPills.appendChild(btn);
-      });
-    }
-
-    // 2. Populate Switcher Modal List
+    // 2. Populate Switcher Modal List (Admin only)
     const listEl = document.getElementById('userAccountList');
     if (!listEl) return;
 
@@ -318,6 +329,10 @@ async function loadUserAccounts() {
 }
 
 function selectUser(name, role, department) {
+  if (currentUser && currentUser.role !== 'admin') {
+    alert('Bạn không có quyền chuyển sang tài khoản của nhân sự khác. Vui lòng Đăng Xuất nếu muốn đổi tài khoản.');
+    return;
+  }
   currentUser = { name, role, department };
   localStorage.setItem('karma_crm_user', JSON.stringify(currentUser));
   updateUserHeaderDisplay();

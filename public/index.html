@@ -92,13 +92,13 @@
         </div>
         <div class="header-actions">
           <!-- Active User / Role Switcher -->
-          <div class="user-profile-badge" id="btnUserSwitcher" title="Nhấp để chuyển đổi tài khoản / xem chi tiết">
+          <div class="user-profile-badge" id="btnUserSwitcher" title="Tài khoản làm việc">
             <div class="user-avatar" id="headerUserAvatar"><i class="fa-solid fa-crown"></i></div>
             <div class="user-info">
               <span class="user-name" id="headerUserName">Admin</span>
               <span class="user-role" id="headerUserRole">Quản trị viên</span>
             </div>
-            <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-muted); margin-left: 4px;"></i>
+            <i class="fa-solid fa-chevron-down" id="headerUserChevron" style="font-size: 10px; color: var(--text-muted); margin-left: 4px;"></i>
           </div>
 
           <button class="btn btn-secondary btn-icon-only" id="btnLogout" title="Đăng xuất tài khoản">
@@ -1173,37 +1173,33 @@
 
       <form id="loginForm" class="login-form">
         <div class="form-group">
-          <label class="form-label"><i class="fa-solid fa-user"></i> Tài Khoản / Nhân Sự:</label>
+          <label class="form-label"><i class="fa-solid fa-user"></i> Chọn Nhân Sự / Nhập Tên:</label>
           <div class="input-with-icon">
             <select id="loginUserSelect" class="select-input" style="width: 100%; margin-bottom: 8px;">
-              <option value="">-- Chọn nhân sự đăng nhập --</option>
+              <option value="">-- Chọn tài khoản nhân sự --</option>
             </select>
           </div>
           <input type="text" id="loginUsernameInput" class="text-input" placeholder="Hoặc nhập tên nhân sự / mã NV...">
         </div>
 
         <div class="form-group">
-          <label class="form-label"><i class="fa-solid fa-lock"></i> Mật Khẩu:</label>
+          <label class="form-label"><i class="fa-solid fa-lock"></i> Mật Khẩu Cá Nhân:</label>
           <div style="position: relative;">
-            <input type="password" id="loginPasswordInput" class="text-input" placeholder="Nhập mật khẩu (mặc định: 123456)" required value="123456">
+            <input type="password" id="loginPasswordInput" class="text-input" placeholder="Nhập mật khẩu của bạn (Mặc định: 123456)" required autocomplete="current-password">
             <button type="button" id="btnTogglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer;">
               <i class="fa-regular fa-eye"></i>
             </button>
           </div>
+          <small style="color: var(--text-dim); font-size: 11px; margin-top: 4px; display: block;">
+            * Mỗi nhân sự chỉ đăng nhập vào tài khoản cá nhân được phân bổ.
+          </small>
         </div>
 
         <div id="loginErrorMsg" class="login-error" style="display: none;"></div>
 
-        <button type="submit" class="btn btn-primary btn-block" id="btnLoginSubmit">
-          <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Hệ Thống
+        <button type="submit" class="btn btn-primary btn-block" id="btnLoginSubmit" style="margin-top: 14px;">
+          <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Làm Việc
         </button>
-
-        <div class="quick-login-box">
-          <span style="font-size: 11px; color: var(--text-muted);">Đăng nhập nhanh:</span>
-          <div class="quick-login-pills" id="quickLoginPills">
-            <!-- Dynamically populated -->
-          </div>
-        </div>
       </form>
     </div>
   </div>
