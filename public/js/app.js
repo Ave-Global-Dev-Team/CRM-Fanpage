@@ -176,14 +176,11 @@ function initAuthAndUserSwitcher() {
     const submitBtn = document.getElementById('btnLoginSubmit');
     errorEl.style.display = 'none';
 
-    let username = document.getElementById('loginUsernameInput').value.trim();
-    if (!username) {
-      username = document.getElementById('loginUserSelect').value;
-    }
+    const username = (document.getElementById('loginUserSelect')?.value || '').trim();
     const password = document.getElementById('loginPasswordInput').value;
 
     if (!username) {
-      errorEl.innerText = 'Vui lòng chọn hoặc nhập tên tài khoản nhân sự.';
+      errorEl.innerText = 'Vui lòng chọn tài khoản nhân sự từ danh sách.';
       errorEl.style.display = 'block';
       return;
     }
