@@ -657,7 +657,7 @@ app.post('/api/master-pages', (req, res) => {
     }
 
     // Auto sync to pages table so it shows on Dashboard/Pages table
-    const existingPage = db.prepare('SELECT id FROM pages WHERE (page_id != "" AND page_id = ?) OR name = ?').get(trimmedId, trimmedPage);
+    const existingPage = db.prepare("SELECT id FROM pages WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR LOWER(TRIM(name)) = LOWER(TRIM(?))").get(trimmedId, trimmedPage);
     if (existingPage) {
       db.prepare("UPDATE pages SET staff_name = ?, topic = ?, page_id = CASE WHEN ? != '' THEN ? ELSE page_id END, page_url = CASE WHEN ? != '' THEN ? ELSE page_url END WHERE id = ?").run(
         trimmedStaff,
@@ -1733,7 +1733,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
         // Auto sync into master_pages so it registers in Staff & Master list permanently
         if (finalStaff && finalStaff !== 'Chưa phân bổ') {
-          const existsMaster = db.prepare('SELECT id FROM master_pages WHERE (page_id != "" AND page_id = ?) OR page_name = ?').get(item.page_id || '', item.page_name);
+          const existsMaster = db.prepare("SELECT id FROM master_pages WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR LOWER(TRIM(page_name)) = LOWER(TRIM(?))").get(item.page_id || '', item.page_name);
           if (!existsMaster) {
             try {
               db.prepare(`

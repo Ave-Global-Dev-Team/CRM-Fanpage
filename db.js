@@ -176,6 +176,28 @@ function initDb() {
   insertStaffInitial.run('Lê Đình Vinh', 'NV_VINH', 'Aff Decor');
   insertStaffInitial.run('Trần Quang Quốc Đạt', 'NV_DAT', 'Aff Decor');
 
+  // Auto-sync all master_pages into pages table so all staff pages are immediately visible
+  try {
+    const masterPages = db.prepare('SELECT * FROM master_pages').all();
+    const findPage = db.prepare("SELECT id FROM pages WHERE (page_id IS NOT NULL AND page_id != '' AND page_id = ?) OR LOWER(TRIM(name)) = LOWER(TRIM(?))");
+    const updatePage = db.prepare("UPDATE pages SET name = ?, page_id = CASE WHEN ? != '' THEN ? ELSE page_id END, staff_name = ?, topic = ?, page_url = CASE WHEN ? != '' THEN ? ELSE page_url END WHERE id = ?");
+    const insertPage = db.prepare("INSERT INTO pages (name, page_id, page_url, staff_name, topic, category) VALUES (?, ?, ?, ?, ?, 'Của tôi')");
+
+    for (const m of masterPages) {
+      const existing = findPage.get(m.page_id || '', m.page_name || '');
+      const url = m.page_id ? 'https://facebook.com/' + m.page_id : '';
+      if (existing) {
+        updatePage.run(m.page_name, m.page_id || '', m.page_id || '', m.staff_name || 'Chưa phân bổ', m.topic || 'Chưa phân loại', url, url, existing.id);
+      } else {
+        try {
+          insertPage.run(m.page_name, m.page_id || '', url, m.staff_name || 'Chưa phân bổ', m.topic || 'Chưa phân loại');
+        } catch (err) {}
+      }
+    }
+  } catch (e) {
+    console.error('Auto sync master_pages to pages error:', e.message);
+  }
+
   // Default API Key setting if not exists
   const existingKey = db.prepare("SELECT value FROM app_settings WHERE key = 'api_key'").get();
   if (!existingKey) {
