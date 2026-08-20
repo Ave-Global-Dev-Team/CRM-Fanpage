@@ -1981,6 +1981,19 @@ body {
   cursor: default;
 }
 
+.cal-day.disabled {
+  opacity: 0.22;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  color: #475569 !important;
+  background: transparent !important;
+}
+
+.cal-day.disabled:hover {
+  background: transparent !important;
+  color: #475569 !important;
+}
+
 .cal-day.other-month {
   color: #475569;
 }

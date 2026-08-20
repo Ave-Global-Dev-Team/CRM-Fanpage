@@ -856,11 +856,26 @@ function renderSingleMonthCalendar(containerId, year, month) {
   }
 }
 
+function getMaxAllowedDateStr() {
+  const today = new Date();
+  const todayStr = formatDateObj(today);
+  const latestDbDate = (availableReportDates && availableReportDates[0]) || todayStr;
+  return todayStr > latestDbDate ? todayStr : latestDbDate;
+}
+
 function createDayElement(dayNum, dateStr, isOtherMonth) {
   const div = document.createElement('div');
   div.className = 'cal-day' + (isOtherMonth ? ' other-month' : '');
   div.innerText = dayNum;
   div.setAttribute('data-date', dateStr);
+
+  const maxAllowedDate = getMaxAllowedDateStr();
+  const isFuture = dateStr > maxAllowedDate;
+
+  if (isFuture) {
+    div.classList.add('disabled');
+    div.title = `Ngày chưa xảy ra: ${dateStr}`;
+  }
 
   if (availableReportDates.includes(dateStr)) {
     div.classList.add('has-data');
@@ -882,14 +897,22 @@ function createDayElement(dayNum, dateStr, isOtherMonth) {
     div.classList.add('selected-single');
   }
 
-  div.addEventListener('click', () => {
-    handleCalendarDateClick(dateStr);
-  });
+  if (!isFuture) {
+    div.addEventListener('click', () => {
+      handleCalendarDateClick(dateStr);
+    });
+  }
 
   return div;
 }
 
 function handleCalendarDateClick(dateStr) {
+  const maxAllowedDate = getMaxAllowedDateStr();
+  if (dateStr > maxAllowedDate) {
+    showToast('Không thể chọn ngày trong tương lai!');
+    return;
+  }
+
   document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 
   if (!tempStartDate || (tempStartDate && tempEndDate)) {
@@ -909,8 +932,8 @@ function handleCalendarDateClick(dateStr) {
 }
 
 function selectPresetRange(rangeType) {
-  const refDateStr = (availableReportDates && availableReportDates[0]) || '2026-08-20';
-  const ref = new Date(refDateStr);
+  const maxAllowedDate = getMaxAllowedDateStr();
+  const ref = new Date(maxAllowedDate);
 
   let start = new Date(ref);
   let end = new Date(ref);
@@ -982,6 +1005,14 @@ function selectPresetRange(rangeType) {
       start = new Date(ref.getFullYear(), ref.getMonth(), 1);
       end = new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
       break;
+  }
+
+  const maxAllowedDateObj = new Date(maxAllowedDate);
+  if (end > maxAllowedDateObj) {
+    end = new Date(maxAllowedDateObj);
+  }
+  if (start > maxAllowedDateObj) {
+    start = new Date(maxAllowedDateObj);
   }
 
   tempStartDate = formatDateObj(start);
