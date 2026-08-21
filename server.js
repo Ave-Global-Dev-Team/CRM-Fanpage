@@ -354,7 +354,7 @@ app.get('/api/pages', (req, res) => {
           COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name,
           COALESCE(NULLIF(p.topic, 'Chưa phân loại'), mp.topic, 'Chưa phân loại') as topic
         FROM pages p
-        LEFT JOIN master_pages mp ON CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN mp.page_id = p.page_id ELSE LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name)) END
+        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
         
         UNION
         
@@ -370,19 +370,19 @@ app.get('/api/pages', (req, res) => {
         FROM master_pages m
         WHERE NOT EXISTS (
           SELECT 1 FROM pages p 
-          WHERE CASE WHEN m.page_id IS NOT NULL AND m.page_id != '' THEN p.page_id = m.page_id ELSE LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name)) END
+          WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND p.page_id = m.page_id) OR LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name))
         )
       )
       SELECT 
         p.*,
         '${endDate}' as selected_report_date,
-        (SELECT MAX(report_date) FROM daily_metrics d WHERE CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) as latest_report_date,
-        COALESCE((SELECT SUM(views) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_views,
-        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_posts_per_day,
-        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_post_count,
-        COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_engagement_rate,
-        COALESCE((SELECT MAX(followers) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_followers,
-        (SELECT COUNT(*) FROM daily_metrics d WHERE CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) as total_records
+        (SELECT MAX(report_date) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))))) as latest_report_date,
+        COALESCE((SELECT SUM(views) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_views,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_posts_per_day,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_post_count,
+        COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_engagement_rate,
+        COALESCE((SELECT MAX(followers) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_followers,
+        (SELECT COUNT(*) FROM daily_metrics d WHERE (d.page_id = p.page_id OR ((SELECT COUNT(*) FROM daily_metrics dm WHERE dm.page_id = p.page_id) = 0 AND LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))))) as total_records
       FROM all_p p
     `;
     const params = [
