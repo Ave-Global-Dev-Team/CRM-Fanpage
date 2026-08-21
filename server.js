@@ -246,10 +246,11 @@ app.get('/api/overview', (req, res) => {
     let compQuery = `
       SELECT 
         m.page_name,
-        p.category,
-        p.page_url,
-        p.page_id,
-        p.staff_name,
+        COALESCE(p.category, 'Của tôi') as category,
+        COALESCE(p.page_url, CASE WHEN COALESCE(m.page_id, p.page_id) IS NOT NULL THEN 'https://facebook.com/' || COALESCE(m.page_id, p.page_id) ELSE '' END) as page_url,
+        COALESCE(m.page_id, p.page_id) as page_id,
+        COALESCE(NULLIF(p.avatar_url, ''), CASE WHEN COALESCE(m.page_id, p.page_id) IS NOT NULL AND COALESCE(m.page_id, p.page_id) != '' THEN 'https://graph.facebook.com/' || COALESCE(m.page_id, p.page_id) || '/picture?type=square' ELSE NULL END) as avatar_url,
+        COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name,
         SUM(m.views) as views,
         AVG(m.posts_per_day) as posts_per_day,
         SUM(m.post_count) as post_count,
@@ -258,15 +259,16 @@ app.get('/api/overview', (req, res) => {
         MAX(m.followers) as followers,
         MAX(m.report_date) as report_date
       FROM daily_metrics m
-      LEFT JOIN pages p ON m.page_name = p.name
+      LEFT JOIN pages p ON (m.page_id IS NOT NULL AND m.page_id != '' AND p.page_id = m.page_id) OR ((m.page_id IS NULL OR m.page_id = '') AND LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name)))
+      LEFT JOIN master_pages mp ON (m.page_id IS NOT NULL AND m.page_id != '' AND mp.page_id = m.page_id) OR ((m.page_id IS NULL OR m.page_id = '') AND LOWER(TRIM(mp.page_name)) = LOWER(TRIM(m.page_name)))
       WHERE m.report_date >= ? AND m.report_date <= ?
     `;
     const compParams = [startDate, endDate];
     if (isStaffFiltered) {
-      compQuery += ' AND p.staff_name = ?';
-      compParams.push(staff_name);
+      compQuery += ' AND (p.staff_name = ? OR mp.staff_name = ?)';
+      compParams.push(staff_name, staff_name);
     }
-    compQuery += ' GROUP BY m.page_name ORDER BY views DESC LIMIT 20';
+    compQuery += ' GROUP BY COALESCE(m.page_id, m.page_name) ORDER BY views DESC LIMIT 200';
     const pageComparison = db.prepare(compQuery).all(...compParams);
 
     // Top Growth (comparing current range to previous date)
@@ -352,7 +354,7 @@ app.get('/api/pages', (req, res) => {
           COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name,
           COALESCE(NULLIF(p.topic, 'Chưa phân loại'), mp.topic, 'Chưa phân loại') as topic
         FROM pages p
-        LEFT JOIN master_pages mp ON (p.page_id IS NOT NULL AND p.page_id != '' AND mp.page_id = p.page_id) OR LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name))
+        LEFT JOIN master_pages mp ON CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN mp.page_id = p.page_id ELSE LOWER(TRIM(mp.page_name)) = LOWER(TRIM(p.name)) END
         
         UNION
         
@@ -368,20 +370,19 @@ app.get('/api/pages', (req, res) => {
         FROM master_pages m
         WHERE NOT EXISTS (
           SELECT 1 FROM pages p 
-          WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND p.page_id = m.page_id) 
-             OR LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name))
+          WHERE CASE WHEN m.page_id IS NOT NULL AND m.page_id != '' THEN p.page_id = m.page_id ELSE LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name)) END
         )
       )
       SELECT 
         p.*,
         '${endDate}' as selected_report_date,
-        (SELECT MAX(report_date) FROM daily_metrics d WHERE (p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) as latest_report_date,
-        COALESCE((SELECT SUM(views) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_views,
-        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_posts_per_day,
-        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_post_count,
-        COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_engagement_rate,
-        COALESCE((SELECT MAX(followers) FROM daily_metrics d WHERE ((p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_followers,
-        (SELECT COUNT(*) FROM daily_metrics d WHERE (p.page_id IS NOT NULL AND p.page_id != '' AND d.page_id = p.page_id) OR LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name))) as total_records
+        (SELECT MAX(report_date) FROM daily_metrics d WHERE CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) as latest_report_date,
+        COALESCE((SELECT SUM(views) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_views,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_posts_per_day,
+        COALESCE((SELECT SUM(post_count) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_post_count,
+        COALESCE((SELECT AVG(engagement_rate) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_engagement_rate,
+        COALESCE((SELECT MAX(followers) FROM daily_metrics d WHERE (CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) AND d.report_date >= ? AND d.report_date <= ?), 0) as latest_followers,
+        (SELECT COUNT(*) FROM daily_metrics d WHERE CASE WHEN p.page_id IS NOT NULL AND p.page_id != '' THEN d.page_id = p.page_id ELSE LOWER(TRIM(d.page_name)) = LOWER(TRIM(p.name)) END) as total_records
       FROM all_p p
     `;
     const params = [
@@ -1266,12 +1267,13 @@ app.get('/api/metrics', (req, res) => {
     let query = `
       SELECT 
         m.*,
-        p.page_url,
-        p.page_id,
-        p.avatar_url,
-        p.staff_name
+        COALESCE(p.page_url, CASE WHEN m.page_id IS NOT NULL THEN 'https://facebook.com/' || m.page_id ELSE '' END) as page_url,
+        COALESCE(m.page_id, p.page_id) as page_id,
+        COALESCE(NULLIF(p.avatar_url, ''), CASE WHEN m.page_id IS NOT NULL THEN 'https://graph.facebook.com/' || m.page_id || '/picture?type=square' ELSE NULL END) as avatar_url,
+        COALESCE(NULLIF(p.staff_name, 'Chưa phân bổ'), mp.staff_name, 'Chưa phân bổ') as staff_name
       FROM daily_metrics m
-      LEFT JOIN pages p ON m.page_name = p.name
+      LEFT JOIN pages p ON (m.page_id IS NOT NULL AND m.page_id != '' AND p.page_id = m.page_id) OR ((m.page_id IS NULL OR m.page_id = '') AND LOWER(TRIM(p.name)) = LOWER(TRIM(m.page_name)))
+      LEFT JOIN master_pages mp ON (m.page_id IS NOT NULL AND m.page_id != '' AND mp.page_id = m.page_id) OR ((m.page_id IS NULL OR m.page_id = '') AND LOWER(TRIM(mp.page_name)) = LOWER(TRIM(m.page_name)))
       WHERE 1=1
     `;
     const params = [];
@@ -1281,8 +1283,8 @@ app.get('/api/metrics', (req, res) => {
       params.push(page_name);
     }
     if (staff_name && staff_name !== 'all' && staff_name !== 'Admin') {
-      query += ' AND p.staff_name = ?';
-      params.push(staff_name);
+      query += ' AND (p.staff_name = ? OR mp.staff_name = ?)';
+      params.push(staff_name, staff_name);
     }
     if (start_date) {
       query += ' AND m.report_date >= ?';
@@ -1344,8 +1346,8 @@ app.post('/api/webhook/fanpagekarma', authenticateApiKey, (req, res) => {
 
     const insertMetric = db.prepare(`
       INSERT OR REPLACE INTO daily_metrics 
-      (page_name, report_date, views, posts_per_day, post_count, interactions, engagement_rate, followers, source, raw_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (page_name, report_date, views, posts_per_day, post_count, interactions, engagement_rate, page_performance_index, followers, source, raw_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertTransaction = db.transaction((rows) => {
@@ -1385,6 +1387,7 @@ app.post('/api/webhook/fanpagekarma', authenticateApiKey, (req, res) => {
           postsPerDay,
           postCount,
           interactions,
+          engagementRate,
           engagementRate,
           followers,
           source,
@@ -1703,7 +1706,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       const commentsRaw = findKey(['numberofcomments', 'comments']);
       const interactionsRaw = findKey(['totalinteractions', 'interactions', 'tươngtác', 'engagement', 'reactions']);
       
-      const erRaw = findKey(['postinteractionrate', 'interactionrate', 'engagementrate', 'pagerate', 'tỷlệtươngtác']);
+      const ppiRaw = findKey(['pageperformanceindex', 'performanceindex', 'pageperformance', 'ppi']);
+      const erRaw = ppiRaw || findKey(['postinteractionrate', 'interactionrate', 'engagementrate', 'pagerate']);
       const followersRaw = findKey(['follower', 'followers', 'fans', 'ngườitheodõi', 'fan']);
       const filenameDate = extractDateFromFilename(req.file?.originalname);
       const dateVal = findKey(['reportdate', 'date', 'ngày', 'time', 'thờigian', 'period']) 
@@ -2130,7 +2134,7 @@ app.all('/api/karma/sync', async (req, res) => {
         const postCount = parseInt(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0, 10) || 0;
         const postsPerDay = postCount;
         const followers = parseInt(item.followers || item.follower || item['Follower'] || 0, 10) || 0;
-        const engagementRate = parseFloat(item.er || item.engagementRate || item.engagement_rate || item['Post interaction rate'] || 0) || 0;
+        const engagementRate = parseFloat(item.page_performance_index || item.ppi || item.performance_index || item.pagePerformanceIndex || item['Page Performance Index'] || item.er || item.engagementRate || item.engagement_rate || 0) || 0;
         const interactions = parseInt(item.interactions || item['Number of Likes'] || item.likes || 0, 10) || 0;
         
         const avatarUrl = item.avatarUrl || item.avatar_url || item.imageLink || item['Image Link'] || '';
@@ -2174,6 +2178,7 @@ app.all('/api/karma/sync', async (req, res) => {
           postsPerDay,
           postCount,
           interactions,
+          engagementRate,
           engagementRate,
           followers,
           'Chrome Extension Sync',
@@ -2221,7 +2226,8 @@ app.all('/api/karma/sync', async (req, res) => {
             posts_per_day: parseInt(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0, 10) || 0,
             post_count: parseInt(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0, 10) || 0,
             followers: parseInt(item.followers || item.follower || item['Follower'] || 0, 10) || 0,
-            engagement_rate: parseFloat(item.er || item.engagementRate || item.engagement_rate || item['Post interaction rate'] || 0) || 0,
+            engagement_rate: parseFloat(item.page_performance_index || item.ppi || item.performance_index || item.pagePerformanceIndex || item['Page Performance Index'] || item.er || item.engagementRate || item.engagement_rate || 0) || 0,
+            page_performance_index: parseFloat(item.page_performance_index || item.ppi || item.performance_index || item.pagePerformanceIndex || item['Page Performance Index'] || item.er || item.engagementRate || item.engagement_rate || 0) || 0,
             interactions: parseInt(item.interactions || item['Number of Likes'] || item.likes || 0, 10) || 0,
             source: 'Fanpage Karma Extension',
             raw_data: item

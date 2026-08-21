@@ -2,12 +2,12 @@
 let charts = {};
 let currentOverviewData = null;
 let currentDaysFilter = 14;
-let currentStartDate = '2026-08-20';
-let currentEndDate = '2026-08-20';
-let currentSelectedReportDate = '2026-08-20';
-let tempStartDate = '2026-08-20';
-let tempEndDate = '2026-08-20';
-let availableReportDates = ['2026-08-20'];
+let currentStartDate = '2026-08-01';
+let currentEndDate = '2026-08-21';
+let currentSelectedReportDate = '2026-08-21';
+let tempStartDate = '2026-08-01';
+let tempEndDate = '2026-08-21';
+let availableReportDates = ['2026-08-21'];
 let calViewYear = 2026;
 let calViewMonth = 7; // August (0-indexed)
 
@@ -1462,8 +1462,12 @@ function renderSortedPagesTable() {
       fbUrl = `https://facebook.com/search/top?q=${encodeURIComponent(p.name)}`;
     }
 
-    const avatarHtml = p.avatar_url && p.avatar_url.trim() !== ''
-      ? `<img src="${escapeHtml(p.avatar_url)}" alt="Avatar" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);" onerror="this.style.display='none'">`
+    const avatarSrc = (p.avatar_url && p.avatar_url.trim() !== '')
+      ? p.avatar_url
+      : (p.page_id ? `https://graph.facebook.com/${p.page_id}/picture?type=square` : '');
+
+    const avatarHtml = avatarSrc
+      ? `<img src="${escapeHtml(avatarSrc)}" alt="Avatar" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);" onerror="this.onerror=null; ${p.page_id ? `this.src='https://graph.facebook.com/${p.page_id}/picture?type=square';` : "this.parentElement.innerHTML='<div style=\"width:34px; height:34px; border-radius:50%; background:rgba(24,119,242,0.15); color:#1877f2; display:flex; align-items:center; justify-content:center; font-size:14px;\"><i class=\"fa-brands fa-facebook-f\"></i></div>';" }">`
       : `<div style="width:34px; height:34px; border-radius:50%; background:rgba(24,119,242,0.15); color:#1877f2; display:flex; align-items:center; justify-content:center; font-size:14px;"><i class="fa-brands fa-facebook-f"></i></div>`;
 
     const staffName = p.staff_name && p.staff_name.trim() !== '' && p.staff_name !== 'Chưa phân bổ'
@@ -3273,7 +3277,7 @@ function renderTopicsCharts(data) {
             borderRadius: 6
           },
           {
-            label: 'Tỷ Lệ ER (%)',
+            label: 'Page Performance Index (%)',
             data: erData,
             type: 'line',
             borderColor: '#10b981',
@@ -3312,7 +3316,7 @@ function renderTopicsCharts(data) {
             position: 'right',
             grid: { drawOnChartArea: false },
             ticks: { color: '#10b981', callback: (v) => `${v}%` },
-            title: { display: true, text: 'Tỷ lệ ER %', color: '#10b981' }
+            title: { display: true, text: 'Page Performance Index (%)', color: '#10b981' }
           }
         }
       }
@@ -3358,7 +3362,7 @@ function showTopicDetailModal(topicName) {
           <h4 style="color:var(--accent-purple); margin:4px 0 0 0; font-size:18px;">${topic.total_posts || topic.avg_posts_per_day} bài</h4>
         </div>
         <div class="kpi-card glass-card" style="padding:12px;">
-          <span class="kpi-label">Tỷ Lệ ER TB</span>
+          <span class="kpi-label">Page Performance Index TB</span>
           <h4 style="color:var(--accent-emerald); margin:4px 0 0 0; font-size:18px;">${topic.avg_engagement_rate}%</h4>
         </div>
       </div>
@@ -3377,7 +3381,7 @@ function showTopicDetailModal(topicName) {
             <i class="fa-solid fa-newspaper"></i> Top Số Bài
           </button>
           <button class="rank-pill" data-topic-modal-sort="engagement_rate">
-            <i class="fa-solid fa-bolt"></i> Top ER (%)
+            <i class="fa-solid fa-bolt"></i> Top PPI (%)
           </button>
           <button class="rank-pill" data-topic-modal-sort="page_name">
             <i class="fa-solid fa-arrow-down-a-z"></i> Tên A-Z
@@ -3405,7 +3409,7 @@ function showTopicDetailModal(topicName) {
               <th class="sortable-th sorted desc" data-tm-col="views" style="text-align:right;">Views <i class="fa-solid fa-sort-down sort-icon"></i></th>
               <th class="sortable-th" data-tm-col="posts_per_day" style="text-align:right;">Number of posts <i class="fa-solid fa-sort sort-icon"></i></th>
               <th class="sortable-th" data-tm-col="interactions" style="text-align:right;">Tương Tác <i class="fa-solid fa-sort sort-icon"></i></th>
-              <th class="sortable-th" data-tm-col="engagement_rate" style="text-align:right;">Tỷ Lệ ER <i class="fa-solid fa-sort sort-icon"></i></th>
+              <th class="sortable-th" data-tm-col="engagement_rate" style="text-align:right;">Page Performance Index <i class="fa-solid fa-sort sort-icon"></i></th>
               <th style="text-align:center; width:75px;">Link</th>
             </tr>
           </thead>
@@ -3533,8 +3537,12 @@ function renderTopicDetailTable() {
 
     const fbUrl = p.page_url || (p.page_id ? `https://facebook.com/${p.page_id}` : `https://facebook.com/search/top?q=${encodeURIComponent(p.page_name)}`);
 
-    const avatarHtml = p.avatar_url && p.avatar_url.trim() !== ''
-      ? `<img src="${escapeHtml(p.avatar_url)}" alt="Avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);" onerror="this.style.display='none'">`
+    const avatarSrc = (p.avatar_url && p.avatar_url.trim() !== '')
+      ? p.avatar_url
+      : (p.page_id ? `https://graph.facebook.com/${p.page_id}/picture?type=square` : '');
+
+    const avatarHtml = avatarSrc
+      ? `<img src="${escapeHtml(avatarSrc)}" alt="Avatar" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);" onerror="this.onerror=null; ${p.page_id ? `this.src='https://graph.facebook.com/${p.page_id}/picture?type=square';` : "this.parentElement.innerHTML='<div style=\"width:28px; height:28px; border-radius:50%; background:rgba(24,119,242,0.15); color:#1877f2; display:flex; align-items:center; justify-content:center; font-size:12px;\"><i class=\"fa-brands fa-facebook-f\"></i></div>';" }">`
       : `<div style="width:28px; height:28px; border-radius:50%; background:rgba(24,119,242,0.15); color:#1877f2; display:flex; align-items:center; justify-content:center; font-size:12px;"><i class="fa-brands fa-facebook-f"></i></div>`;
 
     const tr = document.createElement('tr');
