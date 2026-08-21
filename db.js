@@ -211,9 +211,26 @@ function initDb() {
     `).run();
   } catch (e) {}
 
-  // Clean Chưa phân bổ from staff table
+  // Clean Chưa phân bổ from staff table and remove unmanaged pages
   try {
     db.prepare("DELETE FROM staff WHERE name IN ('Chưa phân bổ', 'Unassigned')").run();
+
+    // Delete unmanaged pages and master_pages where staff is Chưa phân bổ or not in active staff
+    db.prepare(`
+      DELETE FROM pages 
+      WHERE staff_name IS NULL 
+         OR TRIM(staff_name) = '' 
+         OR staff_name = 'Chưa phân bổ' 
+         OR staff_name NOT IN (SELECT name FROM staff)
+    `).run();
+
+    db.prepare(`
+      DELETE FROM master_pages 
+      WHERE staff_name IS NULL 
+         OR TRIM(staff_name) = '' 
+         OR staff_name = 'Chưa phân bổ' 
+         OR staff_name NOT IN (SELECT name FROM staff)
+    `).run();
   } catch (e) {}
 
   // Preserve all pages and master pages
