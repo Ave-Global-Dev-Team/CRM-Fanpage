@@ -5,17 +5,22 @@ const fs = require('fs');
 let dbPath = path.join(__dirname, 'crm_fanpage.db');
 
 if (process.env.VERCEL) {
-  // In Vercel serverless environment, filesystem is read-only except /tmp
+  let sourceDb = dbPath;
+  if (!fs.existsSync(sourceDb)) {
+    sourceDb = path.join(process.cwd(), 'crm_fanpage.db');
+  }
   const tmpDbPath = path.join('/tmp', 'crm_fanpage.db');
   try {
-    if (!fs.existsSync(tmpDbPath) && fs.existsSync(dbPath)) {
-      // Copy project database to /tmp once on cold start
-      fs.copyFileSync(dbPath, tmpDbPath);
+    if (fs.existsSync(sourceDb)) {
+      fs.copyFileSync(sourceDb, tmpDbPath);
+      dbPath = tmpDbPath;
     }
   } catch (err) {
     console.error('Failed to copy db to /tmp:', err);
   }
-  dbPath = tmpDbPath;
+  if (fs.existsSync(tmpDbPath)) {
+    dbPath = tmpDbPath;
+  }
 }
 
 const db = new Database(dbPath);
@@ -145,7 +150,6 @@ function initDb() {
 
     db.prepare("DELETE FROM staff WHERE name IN ('Đức n8n Fitness', 'Đức decor n8n', 'Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý', 'Mai Văn Đức ( AFF Fitness)', 'Mai Văn Đức ( AFF Decor)') OR name LIKE '%Mai Văn Đức%'").run();
     db.prepare("UPDATE pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý', 'Mai Văn Đức ( AFF Fitness)', 'Mai Văn Đức ( AFF Decor)', 'Đức n8n Fitness', 'Đức decor n8n') OR staff_name LIKE '%Mai Văn Đức%'").run();
-    db.prepare("DELETE FROM posts").run();
     db.prepare("UPDATE pages SET page_id = '351681954702992', page_url = 'https://facebook.com/351681954702992' WHERE name = 'My Decor Style'").run();
     db.prepare("UPDATE master_pages SET page_id = '351681954702992' WHERE page_name = 'My Decor Style'").run();
   } catch (e) {
@@ -201,16 +205,13 @@ function initDb() {
   // Disable dummy seed sample data
   // seedSampleData();
 
-  // Clean any old sample/dummy/blank posts
+  // Clean dummy posts if needed
   try {
     db.prepare(`
       DELETE FROM posts 
       WHERE source LIKE '%Seed%' 
          OR source LIKE '%test%' 
-         OR message LIKE '%Test post%' 
-         OR message IS NULL 
-         OR message = '' 
-         OR message = '(Không có nội dung văn bản)'
+         OR message LIKE '%Test post%'
     `).run();
   } catch (e) {}
 

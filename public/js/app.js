@@ -1884,10 +1884,11 @@ function renderPostsTable(posts) {
       }
     }
 
-    // Avatar
-    const avatarHtml = post.page_avatar
-      ? `<img src="${escapeHtml(post.page_avatar)}" class="post-page-avatar" alt="${escapeHtml(post.page_name)}">`
-      : `<div class="post-page-avatar-placeholder">${escapeHtml(post.page_name.substring(0, 1).toUpperCase())}</div>`;
+    // Page Avatar for Column 2 (Fanpage)
+    const pageAvatarSrc = post.page_avatar || '';
+    const avatarHtml = pageAvatarSrc
+      ? `<img src="${escapeHtml(pageAvatarSrc)}" class="post-page-avatar" style="border-radius: 50%; object-fit: cover; width: 36px; height: 36px; border: 1px solid var(--border-color);" alt="${escapeHtml(post.page_name)}" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"post-page-avatar-placeholder\" style=\"border-radius: 50%; width: 36px; height: 36px;\"><i class=\"fa-brands fa-facebook-f\"></i></div>';">`
+      : `<div class="post-page-avatar-placeholder" style="border-radius: 50%; width: 36px; height: 36px;"><i class="fa-brands fa-facebook-f"></i></div>`;
 
     // FB url
     const fbPageUrl = post.page_link || `https://facebook.com/${encodeURIComponent(post.page_name)}`;
