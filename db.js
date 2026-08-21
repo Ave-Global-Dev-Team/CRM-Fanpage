@@ -146,7 +146,7 @@ function initDb() {
     db.prepare("DELETE FROM staff WHERE name IN ('Đức n8n Fitness', 'Đức decor n8n', 'Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý', 'Mai Văn Đức ( AFF Fitness)', 'Mai Văn Đức ( AFF Decor)') OR name LIKE '%Mai Văn Đức%'").run();
     db.prepare("UPDATE pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý', 'Mai Văn Đức ( AFF Fitness)', 'Mai Văn Đức ( AFF Decor)', 'Đức n8n Fitness', 'Đức decor n8n') OR staff_name LIKE '%Mai Văn Đức%'").run();
     db.prepare("UPDATE master_pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý', 'Mai Văn Đức ( AFF Fitness)', 'Mai Văn Đức ( AFF Decor)', 'Đức n8n Fitness', 'Đức decor n8n') OR staff_name LIKE '%Mai Văn Đức%'").run();
-    db.prepare("UPDATE posts SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý', 'Mai Văn Đức ( AFF Fitness)', 'Mai Văn Đức ( AFF Decor)', 'Đức n8n Fitness', 'Đức decor n8n') OR staff_name LIKE '%Mai Văn Đức%'").run();
+    db.prepare("DELETE FROM posts").run();
   } catch (e) {
     console.error('Migration staff error:', e);
   }
