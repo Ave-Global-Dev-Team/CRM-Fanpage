@@ -166,6 +166,8 @@ function initDb() {
   insertStaffInitial.run('Nguyễn Anh Tú', 'NV_TU', 'Aff Fitness');
   insertStaffInitial.run('Lê Đình Vinh', 'NV_VINH', 'Aff Decor');
   insertStaffInitial.run('Trần Quang Quốc Đạt', 'NV_DAT', 'Aff Decor');
+  insertStaffInitial.run('Nguyễn Thị Mỹ Quyên', 'NV_QUYEN', 'Aff Decor');
+  insertStaffInitial.run('Võ Thanh Trà', 'NV_TRA', 'Aff Decor');
 
   // Auto-sync all master_pages into pages table so all staff pages are immediately visible
   try {
