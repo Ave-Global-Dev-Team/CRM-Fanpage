@@ -151,18 +151,18 @@ function initDb() {
     db.prepare("UPDATE master_pages SET staff_name = 'Mai Văn Đức ( AFF Decor)', department = 'AFF Decor' WHERE staff_name = 'Đức decor n8n'").run();
     db.prepare("UPDATE posts SET staff_name = 'Mai Văn Đức ( AFF Decor)' WHERE staff_name = 'Đức decor n8n'").run();
 
-    db.prepare("DELETE FROM staff WHERE name IN ('Đức n8n Fitness', 'Đức decor n8n')").run();
+    db.prepare("DELETE FROM staff WHERE name IN ('Đức n8n Fitness', 'Đức decor n8n', 'Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý')").run();
+    db.prepare("UPDATE pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý')").run();
+    db.prepare("UPDATE master_pages SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý')").run();
+    db.prepare("UPDATE posts SET staff_name = 'Chưa phân bổ' WHERE staff_name IN ('Trần Đông Ban', 'Nguyễn Thị Kim Ngọc', 'Nguyễn Thị Cẩm Thuý')").run();
   } catch (e) {
     console.error('Migration staff error:', e);
   }
 
-  // Seed active staff accounts
+  // Seed active staff accounts (Chỉ thuộc Aff Decor và Aff Fitness)
   const insertStaffInitial = db.prepare("INSERT OR IGNORE INTO staff (name, code, role, password, department) VALUES (?, ?, 'staff', '123456', ?)");
   insertStaffInitial.run('Mai Văn Đức ( AFF Fitness)', 'NV_DUC_FITNESS', 'AFF Fitness');
   insertStaffInitial.run('Mai Văn Đức ( AFF Decor)', 'NV_DUC_DECOR', 'AFF Decor');
-  insertStaffInitial.run('Trần Đông Ban', 'NV_BAN', 'Affiftfy');
-  insertStaffInitial.run('Nguyễn Thị Kim Ngọc', 'NV_NGOC', 'Affiftfy');
-  insertStaffInitial.run('Nguyễn Thị Cẩm Thuý', 'NV_THUY', 'Mobile App');
   insertStaffInitial.run('Đặng Thị Hoài Na', 'NV_NA', 'Aff Decor');
   insertStaffInitial.run('Nguyễn Thị Linh', 'NV_LINH', 'Aff Decor');
   insertStaffInitial.run('Hồ Phi Anh', 'NV_PHIANH', 'Aff Decor');
@@ -274,8 +274,8 @@ function seedSampleData() {
     { name: "Ambiance Apaisante", page_id: "241482175722896", bm: "AVE Tool 2.7", workflow: "n8n decor 22", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "Top trend review" },
     { name: "Atmosphère Harmonieuse", page_id: "285486621304856", bm: "AVE Tool 2.7", workflow: "n8n decor 23", status: "Active", staff: "Mai Văn Đức ( AFF Decor)", topic: "Top trend review" },
     { name: "Urban Oasis", page_id: "116012434869808", bm: "AVE Global 1.5", workflow: "n8n fitness 1", status: "Active", staff: "Mai Văn Đức ( AFF Fitness)", topic: "Fitness & Sức khỏe" },
-    { name: "DIY Decor Hacks", page_id: "105748409222743", bm: "AVE Global 5.1", workflow: "n8n decor 8", status: "Active", staff: "Trần Đông Ban", topic: "KOC review decor" },
-    { name: "Retro Modern Furniture", page_id: "106175722516003", bm: "AVE Tool 1.2", workflow: "n8n decor 17", status: "Active", staff: "Nguyễn Thị Kim Ngọc", topic: "KOC review gia dụng" }
+    { name: "DIY Decor Hacks", page_id: "105748409222743", bm: "AVE Global 5.1", workflow: "n8n decor 8", status: "Active", staff: "Chưa phân bổ", topic: "KOC review decor" },
+    { name: "Retro Modern Furniture", page_id: "106175722516003", bm: "AVE Tool 1.2", workflow: "n8n decor 17", status: "Active", staff: "Chưa phân bổ", topic: "KOC review gia dụng" }
   ];
 
   const insertStaff = db.prepare("INSERT OR IGNORE INTO staff (name, department) VALUES (?, ?)");
