@@ -239,7 +239,53 @@ export async function POST(request: Request) {
         `Đồng bộ thành công ${savedCount} trang từ Extension (Ngày: ${syncDate})`,
         JSON.stringify(rawReports.slice(0, 5))
       );
-    } catch (e) {}
+    // Direct Real-time Sync to Supabase
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const supabaseUrl = process.env.SUPABASE_URL || 'https://eotcqkgfddvudzcbavaw.supabase.co';
+      const supabaseKey = process.env.SUPABASE_KEY || 'sb_secret_Z54UkXInHPqAAYZXM02-8A_Ejucg2Tq';
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const supaMap = new Map();
+      const supaList: any[] = [];
+
+      for (const item of rawReports) {
+        const pName = (item.pageName || item.page_name || item.name || item.Profile || item.page || '').trim();
+        if (!pName) continue;
+        const pId = (item.pageId || item.page_id || item.profileId || item['Profile-ID'] || item.id || '').trim();
+        const iDate = item.updatedDate || item.report_date || item.date;
+        const rDate = iDate ? normalizeDateString(iDate) : syncDate;
+        const key = pName.toLowerCase() + '___' + rDate;
+
+        if (!supaMap.has(key)) {
+          const rowObj = {
+            page_id: pId || null,
+            page_name: pName,
+            report_date: rDate,
+            views: parseInt(String(item.views || item.dailyViews || item.daily_views || item['Daily Views'] || item['Reach per day'] || 0), 10) || 0,
+            posts_per_day: parseInt(String(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0), 10) || 0,
+            post_count: parseInt(String(item.numberOfPosts || item.number_of_posts || item.postCount || item.post_count || item.posts || item['Number of posts'] || 0), 10) || 0,
+            followers: parseInt(String(item.followers || item.follower || item['Follower'] || 0), 10) || 0,
+            engagement_rate: parseFloat(String(item.er || item.engagementRate || item.engagement_rate || item['Post interaction rate'] || 0)) || 0,
+            interactions: parseInt(String(item.interactions || item['Number of Likes'] || item.likes || 0), 10) || 0,
+            source: 'Fanpage Karma Extension',
+            raw_data: item
+          };
+          supaMap.set(key, rowObj);
+          supaList.push(rowObj);
+        }
+      }
+
+      if (supaList.length > 0) {
+        for (let i = 0; i < supaList.length; i += 100) {
+          const batch = supaList.slice(i, i + 100);
+          await supabase.from('daily_metrics').upsert(batch, { onConflict: 'page_name,report_date' });
+        }
+        console.log(`[Supabase] Đã đồng bộ ${supaList.length} bản ghi ngày ${syncDate} lên Supabase.`);
+      }
+    } catch (supaErr) {
+      console.error('[Supabase Sync Handler Error]:', supaErr);
+    }
 
     console.log(`[Karma Sync] Đã lưu thành công ${savedCount} trang ngày ${syncDate} vào CRM!`);
 
