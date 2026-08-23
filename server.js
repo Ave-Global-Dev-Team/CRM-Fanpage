@@ -669,10 +669,40 @@ app.get('/api/master-pages', (req, res) => {
              OR (p.name = m.page_name)
           LIMIT 1
         ) as avatar_url,
-        (SELECT views FROM daily_metrics WHERE page_name = m.page_name ORDER BY report_date DESC LIMIT 1) as latest_views,
-        (SELECT posts_per_day FROM daily_metrics WHERE page_name = m.page_name ORDER BY report_date DESC LIMIT 1) as latest_posts_per_day,
-        (SELECT MAX(report_date) FROM daily_metrics WHERE page_name = m.page_name) as latest_report_date,
-        CASE WHEN (SELECT COUNT(*) FROM daily_metrics WHERE page_name = m.page_name) > 0 THEN 'Đã đồng bộ' ELSE 'Chờ báo cáo' END as sync_status
+        COALESCE(
+          (
+            SELECT dm.views FROM daily_metrics dm 
+            WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND dm.page_id = m.page_id)
+               OR (dm.page_name = m.page_name)
+            ORDER BY dm.report_date DESC LIMIT 1
+          ), 0
+        ) as latest_views,
+        COALESCE(
+          (
+            SELECT dm.posts_per_day FROM daily_metrics dm 
+            WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND dm.page_id = m.page_id)
+               OR (dm.page_name = m.page_name)
+            ORDER BY dm.report_date DESC LIMIT 1
+          ), 0
+        ) as latest_posts_per_day,
+        COALESCE(
+          (
+            SELECT dm.engagement_rate FROM daily_metrics dm 
+            WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND dm.page_id = m.page_id)
+               OR (dm.page_name = m.page_name)
+            ORDER BY dm.report_date DESC LIMIT 1
+          ), 0
+        ) as latest_engagement_rate,
+        (
+          SELECT MAX(dm.report_date) FROM daily_metrics dm 
+          WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND dm.page_id = m.page_id)
+             OR (dm.page_name = m.page_name)
+        ) as latest_report_date,
+        CASE WHEN (
+          SELECT COUNT(*) FROM daily_metrics dm 
+          WHERE (m.page_id IS NOT NULL AND m.page_id != '' AND dm.page_id = m.page_id)
+             OR (dm.page_name = m.page_name)
+        ) > 0 THEN 'Đã đồng bộ' ELSE 'Chờ báo cáo' END as sync_status
       FROM master_pages m
     `;
     const params = [];
@@ -680,7 +710,7 @@ app.get('/api/master-pages', (req, res) => {
       query += ' WHERE m.staff_name = ?';
       params.push(staff_name);
     }
-    query += ' ORDER BY m.id DESC';
+    query += ' ORDER BY latest_views DESC, m.id DESC';
 
     const list = db.prepare(query).all(...params);
     res.json({ success: true, data: list });

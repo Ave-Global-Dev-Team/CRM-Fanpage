@@ -689,9 +689,11 @@ function initEventListeners() {
     renderSortedPagesTable();
   });
 
-  // Init Pages & History Sorting
+  // Init Pages, History, Staff & Master Sorting
   initPagesSorting();
   initHistorySorting();
+  initStaffSorting();
+  initMasterSorting();
 
   // History Filter Page select
   document.getElementById('filterHistoryPage').addEventListener('change', () => {
@@ -2131,10 +2133,226 @@ async function handlePostsFileUpload(e) {
 }
 
 // ----------------------------------------------------
-// 5.1 STAFF & MASTER LIST MANAGEMENT
+// 5.1 STAFF & MASTER LIST MANAGEMENT (SORTING & FILTERING)
 // ----------------------------------------------------
 let allStaffList = [];
 let allMasterList = [];
+let currentStaffSort = { field: 'views', order: 'desc' };
+let currentMasterSort = { field: 'latest_views', order: 'desc' };
+
+function initStaffSorting() {
+  // Staff sort pills
+  document.querySelectorAll('.staff-sort-pill').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      document.querySelectorAll('.staff-sort-pill').forEach(p => p.classList.remove('active'));
+      const btn = e.currentTarget;
+      btn.classList.add('active');
+
+      const val = btn.getAttribute('data-staff-sort') || 'views-desc';
+      const [field, order] = val.split('-');
+      const fieldMap = {
+        'views': 'views',
+        'posts': 'posts',
+        'ppi': 'ppi',
+        'pages': 'total_pages',
+        'name': 'name'
+      };
+      currentStaffSort = { field: fieldMap[field] || field, order: order || 'desc' };
+      renderSortedStaffTable();
+      updateStaffSortHeaderIcons();
+    });
+  });
+
+  // Table header clicks for Staff Table
+  document.querySelectorAll('#staffTable .sortable-th[data-staff-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.getAttribute('data-staff-col');
+      if (currentStaffSort.field === col) {
+        currentStaffSort.order = currentStaffSort.order === 'desc' ? 'asc' : 'desc';
+      } else {
+        currentStaffSort.field = col;
+        currentStaffSort.order = (col === 'name' || col === 'rank') ? 'asc' : 'desc';
+      }
+
+      // Update active pill if matching
+      document.querySelectorAll('.staff-sort-pill').forEach(p => {
+        const pVal = p.getAttribute('data-staff-sort') || '';
+        if (pVal === `${col}-${currentStaffSort.order}` || 
+           (col === 'views' && currentStaffSort.order === 'desc' && pVal === 'views-desc') ||
+           (col === 'views' && currentStaffSort.order === 'asc' && pVal === 'views-asc') ||
+           (col === 'posts' && currentStaffSort.order === 'desc' && pVal === 'posts-desc') ||
+           (col === 'ppi' && currentStaffSort.order === 'desc' && pVal === 'ppi-desc') ||
+           (col === 'total_pages' && currentStaffSort.order === 'desc' && pVal === 'pages-desc') ||
+           (col === 'name' && currentStaffSort.order === 'asc' && pVal === 'name-asc')) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+
+      renderSortedStaffTable();
+      updateStaffSortHeaderIcons();
+    });
+  });
+
+  // Search input for Staff Table
+  const searchStaffInput = document.getElementById('searchStaffInput');
+  if (searchStaffInput) {
+    searchStaffInput.addEventListener('input', () => {
+      renderSortedStaffTable();
+    });
+  }
+}
+
+function updateStaffSortHeaderIcons() {
+  document.querySelectorAll('#staffTable .sortable-th[data-staff-col]').forEach(th => {
+    const col = th.getAttribute('data-staff-col');
+    th.classList.remove('sorted', 'asc', 'desc');
+    const icon = th.querySelector('.sort-icon');
+    if (!icon) return;
+
+    if (col === currentStaffSort.field) {
+      th.classList.add('sorted', currentStaffSort.order);
+      icon.className = `fa-solid fa-sort-${currentStaffSort.order === 'desc' ? 'down' : 'up'} sort-icon`;
+    } else {
+      icon.className = 'fa-solid fa-sort sort-icon';
+    }
+  });
+}
+
+function renderSortedStaffTable() {
+  const tbody = document.getElementById('staffTableBody');
+  if (!tbody) return;
+
+  const searchTerm = (document.getElementById('searchStaffInput')?.value || '').toLowerCase().trim();
+  let list = [...allStaffList];
+
+  if (searchTerm) {
+    list = list.filter(s => 
+      (s.name && s.name.toLowerCase().includes(searchTerm)) ||
+      (s.department && s.department.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  // Sort logic for staff
+  list.sort((a, b) => {
+    let aVal, bVal;
+    switch (currentStaffSort.field) {
+      case 'rank':
+      case 'views':
+        aVal = a.total_views_latest || 0;
+        bVal = b.total_views_latest || 0;
+        break;
+      case 'name':
+        aVal = (a.name || '').toLowerCase();
+        bVal = (b.name || '').toLowerCase();
+        return currentStaffSort.order === 'asc' ? aVal.localeCompare(bVal, 'vi') : bVal.localeCompare(aVal, 'vi');
+      case 'total_pages':
+      case 'pages':
+        aVal = a.total_pages_assigned || a.master_pages_count || a.pages_table_count || 0;
+        bVal = b.total_pages_assigned || b.master_pages_count || b.pages_table_count || 0;
+        break;
+      case 'reported':
+        aVal = a.reported_pages_count || 0;
+        bVal = b.reported_pages_count || 0;
+        break;
+      case 'no_data':
+        aVal = Math.max(0, (a.total_pages_assigned || 0) - (a.reported_pages_count || 0));
+        bVal = Math.max(0, (b.total_pages_assigned || 0) - (b.reported_pages_count || 0));
+        break;
+      case 'error':
+        aVal = a.error_pages_count || 0;
+        bVal = b.error_pages_count || 0;
+        break;
+      case 'posts':
+        aVal = a.total_posts || a.reported_post_count || a.avg_posts_per_day || 0;
+        bVal = b.total_posts || b.reported_post_count || b.avg_posts_per_day || 0;
+        break;
+      case 'ppi':
+        aVal = a.avg_engagement_rate || 0;
+        bVal = b.avg_engagement_rate || 0;
+        break;
+      default:
+        aVal = a.total_views_latest || 0;
+        bVal = b.total_views_latest || 0;
+    }
+
+    if (currentStaffSort.order === 'asc') {
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    } else {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
+  });
+
+  tbody.innerHTML = '';
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">Không tìm thấy nhân sự phù hợp.</td></tr>';
+    return;
+  }
+
+  list.forEach((s, idx) => {
+    const rank = idx + 1;
+    const totalAssigned = s.total_pages_assigned || s.master_pages_count || s.pages_table_count || 0;
+    const reported = s.reported_pages_count || 0;
+    const errorCount = s.error_pages_count || 0;
+    const noData = Math.max(0, totalAssigned - reported);
+    const percent = totalAssigned > 0 ? Math.min(100, Math.round((reported / totalAssigned) * 100)) : 0;
+    const initials = (s.name || 'NV').split(' ').map(w => w[0]).filter(Boolean).slice(-2).join('').toUpperCase();
+
+    const rankBadge = (rank === 1 && currentStaffSort.order === 'desc')
+      ? '<span class="rank-badge rank-1" style="font-size: 16px;">🥇</span>' 
+      : (rank === 2 && currentStaffSort.order === 'desc')
+      ? '<span class="rank-badge rank-2" style="font-size: 16px;">🥈</span>' 
+      : (rank === 3 && currentStaffSort.order === 'desc')
+      ? '<span class="rank-badge rank-3" style="font-size: 16px;">🥉</span>' 
+      : `<span class="rank-badge rank-normal" style="font-weight: 700;">${rank}</span>`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center;">${rankBadge}</td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
+            ${initials}
+          </div>
+          <div>
+            <strong style="color: var(--text-color); font-size: 14px;">${escapeHtml(s.name)}</strong>
+            ${s.department ? `<br><small style="color: var(--text-dim); font-size: 11px;"><i class="fa-solid fa-building-user" style="font-size: 10px; margin-right: 3px;"></i>${escapeHtml(s.department)}</small>` : ''}
+          </div>
+        </div>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge" style="background: rgba(168, 85, 247, 0.12); color: #c084fc; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.25);">
+          <i class="fa-solid fa-layer-group" style="font-size: 11px; margin-right: 4px;"></i>${totalAssigned} page
+        </span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);" title="${percent}% hoàn thành">
+          <i class="fa-solid fa-circle-check" style="font-size: 11px; margin-right: 4px;"></i>${reported} (${percent}%)
+        </span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge" style="background: ${noData > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.04)'}; color: ${noData > 0 ? '#f59e0b' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${noData > 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent'};">
+          <i class="fa-solid ${noData > 0 ? 'fa-clock' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${noData}
+        </span>
+      </td>
+      <td style="text-align: center;">
+        <span class="badge" style="background: ${errorCount > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.04)'}; color: ${errorCount > 0 ? '#f43f5e' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${errorCount > 0 ? 'rgba(239, 68, 68, 0.3)' : 'transparent'};">
+          <i class="fa-solid ${errorCount > 0 ? 'fa-triangle-exclamation' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${errorCount}
+        </span>
+      </td>
+      <td style="text-align: right;"><b style="color: var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
+      <td style="text-align: right;"><span style="color: var(--accent-purple); font-weight: 700;">${formatNumber(s.total_posts || s.reported_post_count || Math.round(s.avg_posts_per_day || 0))}</span> bài</td>
+      <td style="text-align: right;"><span style="color: var(--accent-emerald); font-weight: 700;">${s.avg_engagement_rate ? s.avg_engagement_rate.toFixed(2) : '0.00'}%</span></td>
+      <td style="text-align: center;">
+        <button class="btn btn-secondary btn-sm" onclick="filterMasterListByStaff('${escapeHtml(s.name)}')" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" title="Lọc các page của ${escapeHtml(s.name)}">
+          <i class="fa-solid fa-filter"></i> Xem Page
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
 async function loadStaffData() {
   try {
@@ -2233,90 +2451,125 @@ async function loadStaffData() {
 
     populateStaffMultiSelect();
 
-    // Render Staff Table
-    const tbody = document.getElementById('staffTableBody');
-    if (tbody) {
-      tbody.innerHTML = '';
-      if (allStaffList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">Chưa có nhân sự nào được tạo.</td></tr>';
-      } else {
-        allStaffList.forEach((s, idx) => {
-          const rank = idx + 1;
-          const totalAssigned = s.total_pages_assigned || s.master_pages_count || s.pages_table_count || 0;
-          const reported = s.reported_pages_count || 0;
-          const errorCount = s.error_pages_count || 0;
-          const noData = Math.max(0, totalAssigned - reported);
-          const percent = totalAssigned > 0 ? Math.min(100, Math.round((reported / totalAssigned) * 100)) : 0;
-          const initials = (s.name || 'NV').split(' ').map(w => w[0]).filter(Boolean).slice(-2).join('').toUpperCase();
-
-          const rankBadge = rank === 1 
-            ? '<span class="rank-badge rank-1" style="font-size: 16px;">🥇</span>' 
-            : rank === 2 
-            ? '<span class="rank-badge rank-2" style="font-size: 16px;">🥈</span>' 
-            : rank === 3 
-            ? '<span class="rank-badge rank-3" style="font-size: 16px;">🥉</span>' 
-            : `<span class="rank-badge rank-normal" style="font-weight: 700;">${rank}</span>`;
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="text-align: center;">${rankBadge}</td>
-            <td>
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(168, 85, 247, 0.3); color: #c084fc; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0;">
-                  ${initials}
-                </div>
-                <div>
-                  <strong style="color: var(--text-color); font-size: 14px;">${escapeHtml(s.name)}</strong>
-                  ${s.department ? `<br><small style="color: var(--text-dim); font-size: 11px;"><i class="fa-solid fa-building-user" style="font-size: 10px; margin-right: 3px;"></i>${escapeHtml(s.department)}</small>` : ''}
-                </div>
-              </div>
-            </td>
-            <td style="text-align: center;">
-              <span class="badge" style="background: rgba(168, 85, 247, 0.12); color: #c084fc; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.25);">
-                <i class="fa-solid fa-layer-group" style="font-size: 11px; margin-right: 4px;"></i>${totalAssigned} page
-              </span>
-            </td>
-            <td style="text-align: center;">
-              <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);" title="${percent}% hoàn thành">
-                <i class="fa-solid fa-circle-check" style="font-size: 11px; margin-right: 4px;"></i>${reported} (${percent}%)
-              </span>
-            </td>
-            <td style="text-align: center;">
-              <span class="badge" style="background: ${noData > 0 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.04)'}; color: ${noData > 0 ? '#f59e0b' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${noData > 0 ? 'rgba(245, 158, 11, 0.25)' : 'transparent'};">
-                <i class="fa-solid ${noData > 0 ? 'fa-clock' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${noData}
-              </span>
-            </td>
-            <td style="text-align: center;">
-              <span class="badge" style="background: ${errorCount > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.04)'}; color: ${errorCount > 0 ? '#f43f5e' : 'var(--text-dim)'}; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 8px; border: 1px solid ${errorCount > 0 ? 'rgba(239, 68, 68, 0.3)' : 'transparent'};">
-                <i class="fa-solid ${errorCount > 0 ? 'fa-triangle-exclamation' : 'fa-check'}" style="font-size: 11px; margin-right: 4px;"></i>${errorCount}
-              </span>
-            </td>
-            <td style="text-align: right;"><b style="color: var(--accent-blue); font-size: 14px;">${formatNumber(s.total_views_latest || 0)}</b></td>
-            <td style="text-align: right;"><span style="color: var(--accent-purple); font-weight: 700;">${formatNumber(s.total_posts || s.reported_post_count || Math.round(s.avg_posts_per_day || 0))}</span> bài</td>
-            <td style="text-align: right;"><span style="color: var(--accent-emerald); font-weight: 700;">${s.avg_engagement_rate ? s.avg_engagement_rate.toFixed(2) : '0.00'}%</span></td>
-            <td style="text-align: center;">
-              <button class="btn btn-secondary btn-sm" onclick="filterMasterListByStaff('${escapeHtml(s.name)}')" style="padding: 4px 8px; font-size: 11px; white-space: nowrap;" title="Lọc các page của ${escapeHtml(s.name)}">
-                <i class="fa-solid fa-filter"></i> Xem Page
-              </button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
+    // Render sorted staff table
+    renderSortedStaffTable();
+    updateStaffSortHeaderIcons();
   } catch (err) {
     console.error('Failed to load staff:', err);
   }
 }
 
 function filterMasterListByStaff(staffName) {
+  const staffDropdown = document.getElementById('filterMasterByStaffDropdown');
+  if (staffDropdown) {
+    staffDropdown.value = staffName;
+  }
   const searchInput = document.getElementById('searchMasterInput');
   if (searchInput) {
-    searchInput.value = staffName;
-    renderMasterPagesTable();
-    showToast(`Đã lọc danh sách Fanpage của nhân sự: ${staffName}`);
-    document.getElementById('masterPagesCard')?.scrollIntoView({ behavior: 'smooth' });
+    searchInput.value = '';
   }
+  renderMasterPagesTable();
+  showToast(`Đã lọc danh sách Fanpage của nhân sự: ${staffName}`);
+  document.getElementById('masterPagesCard')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function initMasterSorting() {
+  // Master sort pills
+  document.querySelectorAll('.master-sort-pill').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      document.querySelectorAll('.master-sort-pill').forEach(p => p.classList.remove('active'));
+      const btn = e.currentTarget;
+      btn.classList.add('active');
+
+      const val = btn.getAttribute('data-master-sort') || 'views-desc';
+      const [field, order] = val.split('-');
+      const fieldMap = {
+        'views': 'latest_views',
+        'posts': 'latest_posts_per_day',
+        'name': 'page_name',
+        'staff': 'staff_name'
+      };
+      currentMasterSort = { field: fieldMap[field] || field, order: order || 'desc' };
+      renderMasterPagesTable();
+      updateMasterSortHeaderIcons();
+    });
+  });
+
+  // Table header clicks for Master Pages Table
+  document.querySelectorAll('#masterPagesTable .sortable-th[data-master-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.getAttribute('data-master-col');
+      if (currentMasterSort.field === col) {
+        currentMasterSort.order = currentMasterSort.order === 'desc' ? 'asc' : 'desc';
+      } else {
+        currentMasterSort.field = col;
+        currentMasterSort.order = (col.includes('views') || col.includes('posts')) ? 'desc' : 'asc';
+      }
+
+      // Update pills
+      document.querySelectorAll('.master-sort-pill').forEach(p => {
+        const pVal = p.getAttribute('data-master-sort') || '';
+        if (pVal.startsWith('views') && col === 'latest_views') {
+          if (pVal === `views-${currentMasterSort.order}`) p.classList.add('active');
+          else p.classList.remove('active');
+        } else if (pVal.startsWith('posts') && col === 'latest_posts_per_day') {
+          if (pVal === `posts-${currentMasterSort.order}`) p.classList.add('active');
+          else p.classList.remove('active');
+        } else if (pVal.startsWith('name') && col === 'page_name') {
+          if (pVal === `name-${currentMasterSort.order}`) p.classList.add('active');
+          else p.classList.remove('active');
+        } else if (pVal.startsWith('staff') && col === 'staff_name') {
+          if (pVal === `staff-${currentMasterSort.order}`) p.classList.add('active');
+          else p.classList.remove('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+
+      renderMasterPagesTable();
+      updateMasterSortHeaderIcons();
+    });
+  });
+
+  // Search input for Master
+  const searchMasterInput = document.getElementById('searchMasterInput');
+  if (searchMasterInput) {
+    searchMasterInput.addEventListener('input', () => {
+      renderMasterPagesTable();
+    });
+  }
+
+  // Topic filter
+  const filterTopic = document.getElementById('filterMasterByTopic');
+  if (filterTopic) {
+    filterTopic.addEventListener('change', () => {
+      renderMasterPagesTable();
+    });
+  }
+
+  // Staff filter
+  const filterStaff = document.getElementById('filterMasterByStaffDropdown');
+  if (filterStaff) {
+    filterStaff.addEventListener('change', () => {
+      renderMasterPagesTable();
+    });
+  }
+}
+
+function updateMasterSortHeaderIcons() {
+  document.querySelectorAll('#masterPagesTable .sortable-th[data-master-col]').forEach(th => {
+    const col = th.getAttribute('data-master-col');
+    th.classList.remove('sorted', 'asc', 'desc');
+    const icon = th.querySelector('.sort-icon');
+    if (!icon) return;
+
+    if (col === currentMasterSort.field) {
+      th.classList.add('sorted', currentMasterSort.order);
+      icon.className = `fa-solid fa-sort-${currentMasterSort.order === 'desc' ? 'down' : 'up'} sort-icon`;
+    } else {
+      icon.className = 'fa-solid fa-sort sort-icon';
+    }
+  });
 }
 
 async function loadMasterPagesTable() {
@@ -2330,7 +2583,41 @@ async function loadMasterPagesTable() {
     if (!json.success) return;
 
     allMasterList = json.data;
+
+    // Populate Topic Filter Dropdown
+    const topicFilter = document.getElementById('filterMasterByTopic');
+    if (topicFilter) {
+      const currentVal = topicFilter.value;
+      const topics = Array.from(new Set(allMasterList.map(m => m.topic || 'Chưa phân loại').filter(Boolean))).sort();
+      topicFilter.innerHTML = '<option value="all">Tất cả chủ đề</option>';
+      topics.forEach(t => {
+        const count = allMasterList.filter(m => (m.topic || 'Chưa phân loại') === t).length;
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.innerText = `${t} (${count})`;
+        topicFilter.appendChild(opt);
+      });
+      topicFilter.value = currentVal || 'all';
+    }
+
+    // Populate Staff Filter Dropdown
+    const staffFilter = document.getElementById('filterMasterByStaffDropdown');
+    if (staffFilter) {
+      const currentVal = staffFilter.value;
+      const staffs = Array.from(new Set(allMasterList.map(m => m.staff_name).filter(Boolean))).sort();
+      staffFilter.innerHTML = '<option value="all">Tất cả nhân sự</option>';
+      staffs.forEach(s => {
+        const count = allMasterList.filter(m => m.staff_name === s).length;
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.innerText = `${s} (${count} page)`;
+        staffFilter.appendChild(opt);
+      });
+      staffFilter.value = currentVal || 'all';
+    }
+
     renderMasterPagesTable();
+    updateMasterSortHeaderIcons();
   } catch (err) {
     console.error('Failed to load master pages:', err);
   }
@@ -2341,36 +2628,100 @@ function renderMasterPagesTable() {
   if (!tbody) return;
 
   const searchTerm = (document.getElementById('searchMasterInput')?.value || '').toLowerCase().trim();
-  let list = allMasterList;
+  const selectedTopic = document.getElementById('filterMasterByTopic')?.value || 'all';
+  const selectedStaff = document.getElementById('filterMasterByStaffDropdown')?.value || 'all';
 
+  let list = [...allMasterList];
+
+  // Search filter
   if (searchTerm) {
     list = list.filter(m => 
-      m.page_name.toLowerCase().includes(searchTerm) ||
+      (m.page_name && m.page_name.toLowerCase().includes(searchTerm)) ||
       (m.page_id && String(m.page_id).includes(searchTerm)) ||
-      m.staff_name.toLowerCase().includes(searchTerm)
+      (m.staff_name && m.staff_name.toLowerCase().includes(searchTerm)) ||
+      (m.topic && m.topic.toLowerCase().includes(searchTerm))
     );
   }
 
+  // Topic filter
+  if (selectedTopic && selectedTopic !== 'all') {
+    list = list.filter(m => (m.topic || 'Chưa phân loại') === selectedTopic);
+  }
+
+  // Staff filter
+  if (selectedStaff && selectedStaff !== 'all') {
+    list = list.filter(m => m.staff_name === selectedStaff);
+  }
+
+  // Sorting
+  list.sort((a, b) => {
+    let aVal, bVal;
+    switch (currentMasterSort.field) {
+      case 'latest_views':
+        aVal = a.latest_views || 0;
+        bVal = b.latest_views || 0;
+        break;
+      case 'latest_posts_per_day':
+        aVal = a.latest_posts_per_day || 0;
+        bVal = b.latest_posts_per_day || 0;
+        break;
+      case 'page_name':
+        aVal = (a.page_name || '').toLowerCase();
+        bVal = (b.page_name || '').toLowerCase();
+        return currentMasterSort.order === 'asc' ? aVal.localeCompare(bVal, 'vi') : bVal.localeCompare(aVal, 'vi');
+      case 'topic':
+        aVal = (a.topic || '').toLowerCase();
+        bVal = (b.topic || '').toLowerCase();
+        return currentMasterSort.order === 'asc' ? aVal.localeCompare(bVal, 'vi') : bVal.localeCompare(aVal, 'vi');
+      case 'staff_name':
+        aVal = (a.staff_name || '').toLowerCase();
+        bVal = (b.staff_name || '').toLowerCase();
+        return currentMasterSort.order === 'asc' ? aVal.localeCompare(bVal, 'vi') : bVal.localeCompare(aVal, 'vi');
+      case 'status':
+        aVal = (a.status || a.sync_status || '').toLowerCase();
+        bVal = (b.status || b.sync_status || '').toLowerCase();
+        return currentMasterSort.order === 'asc' ? aVal.localeCompare(bVal, 'vi') : bVal.localeCompare(aVal, 'vi');
+      default:
+        aVal = a.latest_views || 0;
+        bVal = b.latest_views || 0;
+    }
+
+    if (currentMasterSort.order === 'asc') {
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    } else {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
+  });
+
   tbody.innerHTML = '';
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Chưa có danh sách phân bổ gốc nào.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:25px; color:var(--text-muted);">Không tìm thấy Fanpage nào phù hợp.</td></tr>';
     return;
   }
 
   list.forEach(m => {
     const isError = (m.status || '').toLowerCase().includes('lỗi');
     const statusClass = isError ? 'error' : 'active';
+    const views = m.latest_views || 0;
+    const posts = m.latest_posts_per_day || 0;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <strong>${escapeHtml(m.page_name)}</strong>
-        ${m.page_id ? `<br><span style="font-size:11px; color:var(--text-dim); font-family:monospace;">ID: ${escapeHtml(m.page_id)}</span>` : ''}
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${m.avatar_url ? `<img src="${escapeHtml(m.avatar_url)}" style="width:28px; height:28px; border-radius:6px; object-fit:cover;" onerror="this.style.display='none'">` : ''}
+          <div>
+            <strong>${escapeHtml(m.page_name)}</strong>
+            ${m.page_id ? `<br><span style="font-size:11px; color:var(--text-dim); font-family:monospace;">ID: ${escapeHtml(m.page_id)}</span>` : ''}
+          </div>
+        </div>
       </td>
       <td>${getTopicBadge(m.topic)}</td>
       <td><span class="staff-badge assigned"><i class="fa-solid fa-user"></i> ${escapeHtml(m.staff_name)}</span></td>
+      <td style="text-align:right;"><b style="color:var(--accent-blue); font-size:14px;">${formatNumber(views)}</b></td>
+      <td style="text-align:right;"><span style="color:var(--accent-purple); font-weight:700;">${posts}</span> bài</td>
       <td><span class="status-badge-pill ${statusClass}">${escapeHtml(m.status || m.sync_status || 'Active')}</span></td>
-      <td>
+      <td style="text-align:center;">
         <button class="icon-btn danger" onclick="deleteMasterAssignment(${m.id})" title="Xóa phân bổ gốc">
           <i class="fa-regular fa-trash-can"></i>
         </button>

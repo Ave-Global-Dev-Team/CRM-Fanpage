@@ -797,19 +797,48 @@
               </div>
             </div>
 
+            <!-- Staff Sort Toolbar & Quick Filter Pills -->
+            <div class="table-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div class="rank-pills-group" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 12px; color: var(--text-dim); font-weight: 600; margin-right: 4px;"><i class="fa-solid fa-arrow-down-wide-short"></i> Lọc cao/thấp:</span>
+                <button class="rank-pill staff-sort-pill active" data-staff-sort="views-desc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                  <i class="fa-solid fa-eye"></i> Views (Cao → Thấp)
+                </button>
+                <button class="rank-pill staff-sort-pill" data-staff-sort="views-asc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                  <i class="fa-solid fa-arrow-up-short-wide"></i> Views (Thấp → Cao)
+                </button>
+                <button class="rank-pill staff-sort-pill" data-staff-sort="posts-desc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                  <i class="fa-solid fa-file-lines"></i> Bài/Ngày (Cao → Thấp)
+                </button>
+                <button class="rank-pill staff-sort-pill" data-staff-sort="ppi-desc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                  <i class="fa-solid fa-chart-line"></i> PPI (Cao → Thấp)
+                </button>
+                <button class="rank-pill staff-sort-pill" data-staff-sort="pages-desc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                  <i class="fa-solid fa-layer-group"></i> Số Page (Nhiều → Ít)
+                </button>
+                <button class="rank-pill staff-sort-pill" data-staff-sort="name-asc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                  <i class="fa-solid fa-arrow-down-a-z"></i> Tên (A → Z)
+                </button>
+              </div>
+              <div class="table-search-box" style="width: auto; min-width: 250px; margin: 0;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchStaffInput" placeholder="Tìm tên nhân sự, phòng ban..." style="font-size: 12px;">
+              </div>
+            </div>
+
             <div class="table-responsive" style="width: 100%;">
               <table class="data-table" id="staffTable" style="width: 100%;">
                 <thead>
                   <tr>
-                    <th style="width: 60px; text-align: center;">Hạng</th>
-                    <th>Nhân Sự Phụ Trách</th>
-                    <th style="text-align: center; white-space: nowrap;">Tổng Page</th>
-                    <th style="text-align: center; white-space: nowrap;">Page Đã Báo Cáo</th>
-                    <th style="text-align: center; white-space: nowrap;">Chưa Có Dữ Liệu</th>
-                    <th style="text-align: center; white-space: nowrap;">Trạng Thái Lỗi</th>
-                    <th style="text-align: right; white-space: nowrap;">Tổng Views</th>
-                    <th style="text-align: right; white-space: nowrap;">TB Bài/Ngày</th>
-                    <th style="text-align: right; white-space: nowrap;">Page Performance Index</th>
+                    <th class="sortable-th" data-staff-col="rank" style="width: 60px; text-align: center;">Hạng <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="name">Nhân Sự Phụ Trách <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="total_pages" style="text-align: center; white-space: nowrap;">Tổng Page <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="reported" style="text-align: center; white-space: nowrap;">Page Đã Báo Cáo <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="no_data" style="text-align: center; white-space: nowrap;">Chưa Có Dữ Liệu <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="error" style="text-align: center; white-space: nowrap;">Trạng Thái Lỗi <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th sorted desc" data-staff-col="views" style="text-align: right; white-space: nowrap;">Tổng Views <i class="fa-solid fa-sort-down sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="posts" style="text-align: right; white-space: nowrap;">TB Bài/Ngày <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-staff-col="ppi" style="text-align: right; white-space: nowrap;">Page Performance Index <i class="fa-solid fa-sort sort-icon"></i></th>
                     <th style="text-align: center; width: 100px;">Thao Tác</th>
                   </tr>
                 </thead>
@@ -825,7 +854,7 @@
             <div class="card-header">
               <div class="header-left">
                 <h3><i class="fa-solid fa-clipboard-list"></i> Danh Sách Nhân Sự + Fanpage</h3>
-                <p>Khung đối chiếu phân bổ và quản lý page theo từng nhân sự</p>
+                <p>Khung đối chiếu phân bổ và quản lý page theo từng nhân sự (Hỗ trợ lọc & sắp xếp theo lượt xem cao/thấp)</p>
               </div>
               <div style="display:flex; gap:8px;">
                 <button class="btn btn-secondary btn-sm" id="btnImportMasterList">
@@ -838,20 +867,51 @@
               </div>
             </div>
 
-            <div class="table-search-box" style="margin-bottom: 12px; width: 100%;">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="searchMasterInput" placeholder="Tìm kiếm theo tên Page, ID hoặc Nhân sự...">
+            <!-- Master Sort Toolbar & Filters -->
+            <div class="table-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <div class="rank-pills-group" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                  <span style="font-size: 12px; color: var(--text-dim); font-weight: 600; margin-right: 4px;"><i class="fa-solid fa-arrow-down-wide-short"></i> Lọc cao/thấp:</span>
+                  <button class="rank-pill master-sort-pill active" data-master-sort="views-desc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                    <i class="fa-solid fa-eye"></i> Views (Cao → Thấp)
+                  </button>
+                  <button class="rank-pill master-sort-pill" data-master-sort="views-asc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                    <i class="fa-solid fa-arrow-up-short-wide"></i> Views (Thấp → Cao)
+                  </button>
+                  <button class="rank-pill master-sort-pill" data-master-sort="posts-desc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                    <i class="fa-solid fa-file-lines"></i> Bài Đăng (Cao → Thấp)
+                  </button>
+                  <button class="rank-pill master-sort-pill" data-master-sort="name-asc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                    <i class="fa-solid fa-arrow-down-a-z"></i> Tên Page (A → Z)
+                  </button>
+                  <button class="rank-pill master-sort-pill" data-master-sort="staff-asc" style="font-size: 12px; padding: 5px 12px; border-radius: 20px;">
+                    <i class="fa-solid fa-user"></i> Nhân Sự (A → Z)
+                  </button>
+                </div>
+                <select id="filterMasterByTopic" class="select-input" style="font-size: 12px; padding: 6px 12px; min-width: 140px;">
+                  <option value="all">Tất cả chủ đề</option>
+                </select>
+                <select id="filterMasterByStaffDropdown" class="select-input" style="font-size: 12px; padding: 6px 12px; min-width: 150px;">
+                  <option value="all">Tất cả nhân sự</option>
+                </select>
+              </div>
+              <div class="table-search-box" style="width: auto; min-width: 250px; margin: 0;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchMasterInput" placeholder="Tìm tên Page, ID hoặc Nhân sự..." style="font-size: 12px;">
+              </div>
             </div>
 
-            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+            <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
               <table class="data-table" id="masterPagesTable">
                 <thead>
                   <tr>
-                    <th>Fanpage (Danh Sách Gốc)</th>
-                    <th>Chủ Đề</th>
-                    <th>Nhân Sự Phụ Trách</th>
-                    <th>Trạng Thái</th>
-                    <th>Hành Động</th>
+                    <th class="sortable-th" data-master-col="page_name">Fanpage (Danh Sách Gốc) <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-master-col="topic">Chủ Đề <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-master-col="staff_name">Nhân Sự Phụ Trách <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th sorted desc" data-master-col="latest_views" style="text-align: right; white-space: nowrap;">Lượt Xem (Views) <i class="fa-solid fa-sort-down sort-icon"></i></th>
+                    <th class="sortable-th" data-master-col="latest_posts_per_day" style="text-align: right; white-space: nowrap;">TB Bài/Ngày <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th class="sortable-th" data-master-col="status">Trạng Thái <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th style="text-align: center; width: 90px;">Hành Động</th>
                   </tr>
                 </thead>
                 <tbody id="masterPagesTableBody">
