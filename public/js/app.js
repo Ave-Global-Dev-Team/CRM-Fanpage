@@ -2,14 +2,22 @@
 let charts = {};
 let currentOverviewData = null;
 let currentDaysFilter = 14;
-let currentStartDate = '2026-08-01';
-let currentEndDate = '2026-08-21';
-let currentSelectedReportDate = '2026-08-21';
-let tempStartDate = '2026-08-01';
-let tempEndDate = '2026-08-21';
-let availableReportDates = ['2026-08-21'];
-let calViewYear = 2026;
-let calViewMonth = 7; // August (0-indexed)
+
+const now = new Date();
+const currentYear = now.getFullYear();
+const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+const currentDay = String(now.getDate()).padStart(2, '0');
+const defaultTodayStr = `${currentYear}-${currentMonth}-${currentDay}`;
+const defaultMonthStartStr = `${currentYear}-${currentMonth}-01`;
+
+let currentStartDate = defaultMonthStartStr;
+let currentEndDate = defaultTodayStr;
+let currentSelectedReportDate = defaultTodayStr;
+let tempStartDate = defaultMonthStartStr;
+let tempEndDate = defaultTodayStr;
+let availableReportDates = [defaultTodayStr];
+let calViewYear = currentYear;
+let calViewMonth = now.getMonth(); // 0-indexed
 
 let currentUser = JSON.parse(localStorage.getItem('karma_crm_user')) || {
   name: 'Admin',
@@ -773,8 +781,8 @@ function openDateRangePickerModal() {
   const modal = document.getElementById('dateRangePickerModal');
   if (!modal) return;
 
-  tempStartDate = currentStartDate || '2026-08-20';
-  tempEndDate = currentEndDate || '2026-08-20';
+  tempStartDate = currentStartDate || defaultMonthStartStr;
+  tempEndDate = currentEndDate || defaultTodayStr;
 
   if (tempStartDate) {
     const parts = tempStartDate.split('-');

@@ -1,0 +1,179 @@
+[2026-08-21 08:09:50] ====================================================
+[2026-08-21 08:09:50] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-21 08:09:50] ====================================================
+[2026-08-21 08:09:50] 📅 Syncing Metrics Overview for Yesterday: 2026-08-20
+[2026-08-21 08:09:50] ⏱️ Range timestamps: from=1787184000000 to=1787270399999
+[2026-08-21 08:09:50] ✅ Chrome CDP is already running on port 9222!
+[2026-08-21 08:09:50] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-21 08:09:50] 🚀 Navigating to Fanpage Karma report: https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787184000000&to=1787270399999
+[2026-08-21 08:09:59] 🎯 Extracted 211 page metric rows from Metrics Overview table!
+[2026-08-21 08:09:59] ✅ Local SQLite updated: 211 Fanpage metrics saved for 2026-08-20 (Total Views: 1,012)
+[2026-08-21 08:10:00] ⚠️ Supabase Cloud sync error: Unregistered API key
+[2026-08-21 08:10:00] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-21 08:14:27] ====================================================
+[2026-08-21 08:14:27] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-21 08:14:27] ====================================================
+[2026-08-21 08:14:27] 📅 Syncing Metrics Overview for Yesterday: 2026-08-20
+[2026-08-21 08:14:27] ⏱️ Range timestamps: from=1787184000000 to=1787270399999
+[2026-08-21 08:14:27] ✅ Chrome CDP is already running on port 9222!
+[2026-08-21 08:14:27] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-21 08:14:27] 🚀 Navigating to Fanpage Karma report: https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787184000000&to=1787270399999
+[2026-08-21 08:14:36] 🎯 Extracted 196 page metric rows from Metrics Overview table!
+[2026-08-21 08:14:36] ✅ Local SQLite updated: 196 Fanpage metrics saved for 2026-08-20 (Total Views: 892)
+[2026-08-21 08:14:37] ⚠️ Supabase Cloud sync error: Unregistered API key
+[2026-08-21 08:14:37] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-21 08:15:07] ====================================================
+[2026-08-21 08:15:07] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-21 08:15:07] ====================================================
+[2026-08-21 08:15:07] 📅 Syncing Metrics Overview for Yesterday: 2026-08-20
+[2026-08-21 08:15:07] ⏱️ Range timestamps: from=1787184000000 to=1787270399999
+[2026-08-21 08:15:07] ✅ Chrome CDP is already running on port 9222!
+[2026-08-21 08:15:07] ❌ ERROR in auto_daily_karma_sync: No available browser tab found in Chrome CDP list
+Error: No available browser tab found in Chrome CDP list
+    at main (/Users/maivanduc/.gemini/antigravity/CRM fanpage/auto_daily_karma_sync.js:134:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-08-21 08:15:51] ====================================================
+[2026-08-21 08:15:51] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-21 08:15:51] ====================================================
+[2026-08-21 08:15:51] 📅 Syncing Metrics Overview for Yesterday: 2026-08-20
+[2026-08-21 08:15:51] ⏱️ Range timestamps: from=1787184000000 to=1787270399999
+[2026-08-21 08:15:51] ✅ Chrome CDP is already running on port 9222!
+[2026-08-21 08:15:51] ❌ ERROR in auto_daily_karma_sync: No available browser tab found in Chrome CDP list
+Error: No available browser tab found in Chrome CDP list
+    at main (/Users/maivanduc/.gemini/antigravity/CRM fanpage/auto_daily_karma_sync.js:134:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-08-22 02:00:01] ====================================================
+[2026-08-22 02:00:01] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-22 02:00:01] ====================================================
+[2026-08-22 02:00:01] 📅 Syncing Metrics Overview for Yesterday: 2026-08-21
+[2026-08-22 02:00:01] ⏱️ Range timestamps: from=1787270400000 to=1787356799999
+[2026-08-22 02:00:01] ✅ Chrome CDP is already running on port 9222!
+[2026-08-22 02:00:01] ❌ ERROR in auto_daily_karma_sync: No available browser tab found in Chrome CDP list
+Error: No available browser tab found in Chrome CDP list
+    at main (/Users/maivanduc/.gemini/antigravity/CRM fanpage/auto_daily_karma_sync.js:134:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-08-22 02:00:05] ====================================================
+[2026-08-22 02:00:05] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-22 02:00:05] ====================================================
+[2026-08-22 02:00:05] 📅 Syncing Metrics Overview for Yesterday: 2026-08-21
+[2026-08-22 02:00:05] ⏱️ Range timestamps: from=1787270400000 to=1787356799999
+[2026-08-22 02:00:05] ✅ Chrome CDP is already running on port 9222!
+[2026-08-22 02:00:05] ❌ ERROR in auto_daily_karma_sync: No available browser tab found in Chrome CDP list
+Error: No available browser tab found in Chrome CDP list
+    at main (/Users/maivanduc/.gemini/antigravity/CRM fanpage/auto_daily_karma_sync.js:134:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-08-22 02:29:01] ====================================================
+[2026-08-22 02:29:01] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-22 02:29:01] ====================================================
+[2026-08-22 02:29:01] 📅 Syncing Metrics Overview for Yesterday: 2026-08-21
+[2026-08-22 02:29:01] ⏱️ Range timestamps: from=1787270400000 to=1787356799999
+[2026-08-22 02:29:01] ✅ Chrome CDP is already running on port 9222!
+[2026-08-22 02:29:01] ⚠️ No active page tab found, opening a new tab via CDP...
+[2026-08-22 02:29:01] ❌ ERROR in auto_daily_karma_sync: Unexpected token 'U', "Using unsa"... is not valid JSON
+SyntaxError: Unexpected token 'U', "Using unsa"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at IncomingMessage.<anonymous> (/Users/maivanduc/.gemini/antigravity/CRM fanpage/auto_daily_karma_sync.js:45:28)
+    at IncomingMessage.emit (node:events:521:24)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[2026-08-22 02:29:21] ====================================================
+[2026-08-22 02:29:21] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-22 02:29:21] ====================================================
+[2026-08-22 02:29:21] 📅 Syncing Metrics Overview for Yesterday: 2026-08-21
+[2026-08-22 02:29:21] ⏱️ Range timestamps: from=1787270400000 to=1787356799999
+[2026-08-22 02:29:21] ✅ Chrome CDP is already running on port 9222!
+[2026-08-22 02:29:21] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-22 02:29:21] 🚀 Navigating to Fanpage Karma report: https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787270400000&to=1787356799999
+[2026-08-22 02:29:32] 🎯 Extracted 191 page metric rows from Metrics Overview table!
+[2026-08-22 02:29:32] ✅ Local SQLite updated: 191 Fanpage metrics saved for 2026-08-21 (Total Views: 609)
+[2026-08-22 02:29:33] ⚠️ Supabase Cloud sync error: Unregistered API key
+[2026-08-22 02:29:33] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 02:00:00] ====================================================
+[2026-08-23 02:00:00] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-23 02:00:00] ====================================================
+[2026-08-23 02:00:00] 📅 Syncing Metrics Overview for Yesterday: 2026-08-22
+[2026-08-23 02:00:00] ⏱️ Range timestamps: from=1787356800000 to=1787443199999
+[2026-08-23 02:00:01] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:00:01] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:00:01] 🚀 Navigating to Fanpage Karma report: https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787356800000&to=1787443199999
+[2026-08-23 02:00:02] ====================================================
+[2026-08-23 02:00:02] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-23 02:00:02] ====================================================
+[2026-08-23 02:00:02] 📅 Syncing Metrics Overview for Yesterday: 2026-08-22
+[2026-08-23 02:00:02] ⏱️ Range timestamps: from=1787356800000 to=1787443199999
+[2026-08-23 02:00:02] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:00:02] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:00:02] 🚀 Navigating to Fanpage Karma report: https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787356800000&to=1787443199999
+[2026-08-23 02:00:09] 🎯 Extracted 130 page metric rows from Metrics Overview table!
+[2026-08-23 02:00:09] ✅ Local SQLite updated: 130 Fanpage metrics saved for 2026-08-22 (Total Views: 604)
+[2026-08-23 02:00:10] ⚠️ Supabase Cloud sync error: Unregistered API key
+[2026-08-23 02:00:10] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 02:00:11] 🎯 Extracted 130 page metric rows from Metrics Overview table!
+[2026-08-23 02:00:11] ✅ Local SQLite updated: 130 Fanpage metrics saved for 2026-08-22 (Total Views: 604)
+[2026-08-23 02:00:11] ⚠️ Supabase Cloud sync error: Unregistered API key
+[2026-08-23 02:00:11] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 02:07:34] 
+====================================================
+[2026-08-23 02:07:34] ⚡ SYNCING METRICS & POSTS FOR: 2026-08-21
+[2026-08-23 02:07:34] ====================================================
+[2026-08-23 02:07:34] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:07:34] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:07:34] 🚀 Navigating to Report 1 (Metrics Overview): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrZvKEJDA&time=FREE&from=1787270400000&to=1787356799999
+[2026-08-23 02:07:42] 📊 Extracted 54 raw metric rows from Fanpage Karma
+[2026-08-23 02:07:42] 🚀 Navigating to Report 2 (Viral Posts): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787270400000&to=1787356799999
+[2026-08-23 02:07:51] 🎯 Extracted 50 post rows for 2026-08-21
+[2026-08-23 02:07:51] ✅ Local SQLite updated: 51 fanpages saved for 2026-08-21 (Total Views: 286,570)
+[2026-08-23 02:07:51] ✅ Local SQLite updated: 50 viral posts saved for 2026-08-21
+[2026-08-23 02:07:51] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 02:07:57] 
+====================================================
+[2026-08-23 02:07:57] ⚡ SYNCING METRICS & POSTS FOR: 2026-08-22
+[2026-08-23 02:07:57] ====================================================
+[2026-08-23 02:07:57] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:07:57] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:07:57] 🚀 Navigating to Report 1 (Metrics Overview): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrZvKEJDA&time=FREE&from=1787356800000&to=1787443199999
+[2026-08-23 02:08:06] 📊 Extracted 54 raw metric rows from Fanpage Karma
+[2026-08-23 02:08:06] 🚀 Navigating to Report 2 (Viral Posts): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787356800000&to=1787443199999
+[2026-08-23 02:08:14] 🎯 Extracted 50 post rows for 2026-08-22
+[2026-08-23 02:08:14] ✅ Local SQLite updated: 51 fanpages saved for 2026-08-22 (Total Views: 202,567)
+[2026-08-23 02:08:14] ✅ Local SQLite updated: 50 viral posts saved for 2026-08-22
+[2026-08-23 02:08:14] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 02:10:42] 
+====================================================
+[2026-08-23 02:10:42] ⚡ SYNCING METRICS FOR 2026-08-21 & TOP POSTS (LAST 30 DAYS)
+[2026-08-23 02:10:42] ====================================================
+[2026-08-23 02:10:42] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:10:42] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:10:42] 🚀 Navigating to Report 1 (Metrics Overview): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrZvKEJDA&time=FREE&from=1787270400000&to=1787356799999
+[2026-08-23 02:10:50] 📊 Extracted 54 raw metric rows from Fanpage Karma
+[2026-08-23 02:10:50] 🚀 Navigating to Report 2 (Viral Posts 30 Ngày Qua): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1784764800000&to=1787356799999
+[2026-08-23 02:11:11] 🎯 Extracted 50 post rows (Last 30 Days)
+[2026-08-23 02:11:11] ✅ Local SQLite updated: 51 fanpages saved for 2026-08-21 (Total Views: 286,570)
+[2026-08-23 02:11:11] ✅ Local SQLite updated: 50 Top Viral Posts (Last 30 Days) saved into CRM! (Top Reach: 258,000)
+[2026-08-23 02:11:11] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 02:13:42] 
+====================================================
+[2026-08-23 02:13:42] ⚡ SYNCING METRICS FOR 2026-08-20 & TOP POSTS (LAST 30 DAYS)
+[2026-08-23 02:13:42] ====================================================
+[2026-08-23 02:13:42] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:13:42] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:13:42] 🚀 Navigating to Report 1 (Metrics Overview): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrZvKEJDA&time=FREE&from=1787184000000&to=1787270399999
+[2026-08-23 02:13:51] 📊 Extracted 54 raw metric rows from Fanpage Karma
+[2026-08-23 02:13:51] 🚀 Navigating to Report 2 (Viral Posts 30 Ngày Qua): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1784678400000&to=1787270399999
+[2026-08-23 02:14:08] 🎯 Extracted 50 post rows (Last 30 Days)
+[2026-08-23 02:14:08] ✅ Local SQLite updated: 51 fanpages saved for 2026-08-20 (Total Views: 216,050)
+[2026-08-23 02:14:08] ✅ Local SQLite updated: 50 Top Viral Posts (Last 30 Days) saved into CRM! (Top Reach: 258,000)
+[2026-08-23 02:14:08] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
+[2026-08-23 14:52:51] 
+====================================================
+[2026-08-23 14:52:51] ⚡ SYNCING METRICS FOR 2026-08-23 & TOP POSTS (LAST 30 DAYS)
+[2026-08-23 14:52:51] ====================================================
+[2026-08-23 14:52:51] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 14:52:52] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 14:52:52] 🚀 Navigating to Report 1 (Metrics Overview): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrZvKEJDA&time=FREE&from=1787443200000&to=1787529599999
+[2026-08-23 14:53:02] 📊 Extracted 54 raw metric rows from Fanpage Karma
+[2026-08-23 14:53:02] 🚀 Navigating to Report 2 (Viral Posts 30 Ngày Qua): https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1784937600000&to=1787529599999
+[2026-08-23 14:53:20] 🎯 Extracted 50 post rows (Last 30 Days)
+[2026-08-23 14:53:20] ✅ Local SQLite updated: 51 fanpages saved for 2026-08-23 (Total Views: 241,485)
+[2026-08-23 14:53:20] ✅ Local SQLite updated: 50 Top Viral Posts (Last 30 Days) saved into CRM! (Top Reach: 258,000)
+[2026-08-23 14:53:20] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!

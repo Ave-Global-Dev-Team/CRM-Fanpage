@@ -1,0 +1,22 @@
+[2026-08-22 02:00:01] ====================================================
+[2026-08-22 02:00:01] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-22 02:00:01] ====================================================
+[2026-08-22 02:00:01] 📅 Syncing Metrics Overview for Yesterday: 2026-08-21
+[2026-08-22 02:00:01] ⏱️ Range timestamps: from=1787270400000 to=1787356799999
+[2026-08-22 02:00:01] ✅ Chrome CDP is already running on port 9222!
+[2026-08-22 02:00:01] ❌ ERROR in auto_daily_karma_sync: No available browser tab found in Chrome CDP list
+Error: No available browser tab found in Chrome CDP list
+    at main (/Users/maivanduc/.gemini/antigravity/CRM fanpage/auto_daily_karma_sync.js:134:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[2026-08-23 02:00:00] ====================================================
+[2026-08-23 02:00:00] ⚡ STARTING AUTOMATED DAILY FANPAGE KARMA METRICS SYNC
+[2026-08-23 02:00:00] ====================================================
+[2026-08-23 02:00:00] 📅 Syncing Metrics Overview for Yesterday: 2026-08-22
+[2026-08-23 02:00:00] ⏱️ Range timestamps: from=1787356800000 to=1787443199999
+[2026-08-23 02:00:01] ✅ Chrome CDP is already running on port 9222!
+[2026-08-23 02:00:01] ✅ Connected to Chrome CDP WebSocket!
+[2026-08-23 02:00:01] 🚀 Navigating to Fanpage Karma report: https://app.fanpagekarma.com/dashboard?h=Sf6fNa9Vm&tl0=ag5zfmZhbnBhZ2VrYXJtYXIcCxIPRGFzaGJvYXJkUmVwb3J0GICAwZrnkL8LDA&time=FREE&from=1787356800000&to=1787443199999
+[2026-08-23 02:00:09] 🎯 Extracted 130 page metric rows from Metrics Overview table!
+[2026-08-23 02:00:09] ✅ Local SQLite updated: 130 Fanpage metrics saved for 2026-08-22 (Total Views: 604)
+[2026-08-23 02:00:10] ⚠️ Supabase Cloud sync error: Unregistered API key
+[2026-08-23 02:00:10] 🎉 AUTOMATED SYNC COMPLETED SUCCESSFULLY!
