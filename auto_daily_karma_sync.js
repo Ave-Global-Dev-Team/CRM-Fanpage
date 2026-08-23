@@ -148,22 +148,43 @@ async function syncKarma(targetDateStr) {
   await sendWsMsg(ws, 'Page.navigate', { url: urlReport1 });
   await new Promise(r => setTimeout(r, 7000));
 
+  // Check and click "Update now" if Karma data needs refresh
+  await sendWsMsg(ws, 'Runtime.evaluate', {
+    expression: `(function() {
+      var btns = Array.from(document.querySelectorAll('button, a, div')).filter(function(el) {
+        return el.innerText && el.innerText.trim() === 'Update now';
+      });
+      if (btns.length > 0) {
+        btns[0].click();
+        return true;
+      }
+      return false;
+    })()`
+  });
+  await new Promise(r => setTimeout(r, 5000));
+
   const jsReport1 = `
   JSON.stringify((function() {
-    let tables = Array.from(document.querySelectorAll('table'));
-    let mainTable = tables.find(t => t.querySelectorAll('tbody tr').length >= 40);
+    var tables = Array.from(document.querySelectorAll('table'));
+    var mainTable = tables.find(function(t) {
+      var rows = t.querySelectorAll('tbody tr');
+      if (rows.length < 40) return false;
+      var firstRowCells = rows[0].querySelectorAll('td, th');
+      return firstRowCells.length >= 8;
+    });
+    if (!mainTable) mainTable = tables.find(function(t) { return t.querySelectorAll('tbody tr').length >= 40; });
     if (!mainTable) return [];
-    let rows = Array.from(mainTable.querySelectorAll('tbody tr'));
-    return rows.map(r => {
-      let cells = Array.from(r.querySelectorAll('td, th')).map(c => c.innerText.replace(/\\n/g, ' ').trim());
-      let img = r.querySelector('img')?.src || '';
-      let link = r.querySelector('a[href*="discovery"]')?.href || '';
-      let pageId = '';
+    var rows = Array.from(mainTable.querySelectorAll('tbody tr'));
+    return rows.map(function(r) {
+      var cells = Array.from(r.querySelectorAll('td, th')).map(function(c) { return c.innerText.replace(/\\n/g, ' ').trim(); });
+      var img = r.querySelector('img') ? r.querySelector('img').src : '';
+      var link = r.querySelector('a[href*="discovery"]') ? r.querySelector('a[href*="discovery"]').href : '';
+      var pageId = '';
       if (link) {
-        let m = link.match(/discovery\\/[A-Z]+\\/([0-9]+)/i);
+        var m = link.match(/discovery\\/[A-Z]+\\/([0-9]+)/i);
         if (m) pageId = m[1];
       }
-      return { cells, img, link, pageId };
+      return { cells: cells, img: img, link: link, pageId: pageId };
     });
   })())
   `;
